@@ -1,30 +1,30 @@
 class Color:
 
     def __init__(self):
-        self._red = None
-        self._green = None
-        self._blue = None
+        self._red = 0
+        self._green = 0
+        self._blue = 0
 
     @property
-    def red(self):
+    def red(self) -> int:
         return self._red
 
     @red.setter
-    def red(self, value):
+    def red(self, value: int):
         self._red = value
 
     @property
-    def green(self):
+    def green(self) -> int:
         return self._green
 
     @green.setter
-    def green(self, value):
+    def green(self, value: int):
         self._green = value
 
     @property
-    def blue(self):
+    def blue(self) -> int:
         return self._blue
 
     @blue.setter
-    def blue(self, value):
+    def blue(self, value: int):
         self._blue = value
