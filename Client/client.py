@@ -16,11 +16,9 @@ class Point:
         self.x = x
         self.y = y
 
-
 class Player:
     def __init__(self, posx, posy, width, height, color):
         self.degrees = math.pi/2
-
         self.x = 1
         self.y = 0
         self.posX = posx
@@ -32,6 +30,7 @@ class Player:
         self.vel = 3
         self.curr_line = []
         self.points = []
+        self.invisible_since = None
 
     def rotate_by(self, deg):
         self.degrees += math.radians(deg)
@@ -69,12 +68,17 @@ class Player:
         self.posX += base_speed * self.x
         self.posY += base_speed * self.y
 
-        self.curr_line.append(self.point)
         self.point = (self.posX, self.posY)
-        if random.random() < 0.005:
-            self.invisible_since = datetime.now()
-            self.points.append(self.curr_line)
-            self.curr_line = []
+
+        if self.invisible_since:
+            if datetime.now() - self.invisible_since > timedelta(microseconds=random.randint(50000,100000)):
+                self.invisible_since = None
+        else:
+            self.curr_line.append(self.point)
+            if random.random() < 0.005:
+                self.invisible_since = datetime.now()
+                self.points.append(self.curr_line)
+                self.curr_line = []
 
 
 def redrawWindow(win, player):
