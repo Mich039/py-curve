@@ -5,7 +5,7 @@ import pickle
 import selectors
 import collections
 import logging
-
+import threading
 
 BUFFERSIZE = 512
 
@@ -47,10 +47,26 @@ class Host(asyncore.dispatcher):
 
     def __init__(self, address, port):
         asyncore.dispatcher.__init__(self)
+
+        self._thread = None
+
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.set_reuse_addr()
         self.bind((address, port))
         self.listen(1)
         self.remote_clients = []
+
+    def start(self):
+        """
+                For use when an asyncore.loop is not already running.
+                Starts a threaded loop.
+                """
+        if self._thread is not None:
+            return
+
+        self._thread = threading.Thread(target=asyncore.loop, kwargs={'timeout': 1})
+        self._thread.daemon = True
+        self._thread.start()
 
     def handle_accept(self):
         socket, addr = self.accept() # For the remote client.
@@ -69,5 +85,6 @@ class Host(asyncore.dispatcher):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.info('Create host')
-    Host('localhost', 4321)
+    host = Host('localhost', 4321)
+    #host.start()
     asyncore.loop()
