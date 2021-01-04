@@ -5,17 +5,17 @@ class Point:
         self._y = y
 
     @property
-    def x(self):
+    def x(self) -> int:
         return self._x
 
     @x.setter
-    def x(self, value):
+    def x(self, value: int):
         self._x = value
 
     @property
-    def y(self):
+    def y(self) -> int:
         return self._y
 
     @y.setter
-    def y(self, value):
+    def y(self, value: int):
         self._y = value

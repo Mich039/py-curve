@@ -6,25 +6,25 @@ class Score:
         self._deaths = None
 
     @property
-    def score_points(self):
+    def score_points(self) -> int:
         return self._score_points
 
     @score_points.setter
-    def score_points(self, value):
+    def score_points(self, value: int):
         self._score_points = value
 
     @property
-    def power_up_points(self):
+    def power_up_points(self) -> int:
         return self._score_points
 
     @power_up_points.setter
-    def power_up_points(self, value):
+    def power_up_points(self, value: int):
         self._power_up_points = value
 
     @property
-    def deaths(self):
+    def deaths(self) -> int:
         return self._deaths
 
     @deaths.setter
-    def deaths(self, value):
+    def deaths(self, value: int):
         self._deaths = value
