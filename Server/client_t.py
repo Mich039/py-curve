@@ -1,5 +1,6 @@
 import socket
 import pickle
+import time
 from datetime import datetime
 
 BUFFERSIZE = 512
@@ -17,10 +18,10 @@ class Client:
         self.socket.send(message)
 
     def receive(self):
-        recieved = self.socket.recv(BUFFERSIZE)
+        received = self.socket.recv(BUFFERSIZE)
         print('received data from {0}:{1}'.format(self._address, self._port))
-        if recieved:
-            return recieved
+        if received:
+            return received
         else:
             print("no data recieved on {0}:{1}".format(self._address, self._port))
 
@@ -29,7 +30,9 @@ def main():
     client = Client("127.0.0.1", 4321)
     data = client.receive()
     print(pickle.loads(data))
-    client.send(pickle.dumps(datetime.now()))
+    while (1):
+        time.sleep(1)
+        client.send(pickle.dumps(datetime.now()))
 
 
 if __name__ == '__main__':
