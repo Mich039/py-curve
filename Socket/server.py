@@ -5,7 +5,7 @@ import pickle
 import selectors
 import collections
 import logging
-
+import threading
 
 BUFFERSIZE = 512
 
@@ -13,13 +13,14 @@ MAX_MESSAGE_LENGTH = 1024  # message length
 
 outgoing = []
 
+
 class RemoteClient(asyncore.dispatcher):
 
     """Wraps a remote client socket."""
 
-
     def __init__(self, host, socket, address):
         asyncore.dispatcher.__init__(self, socket)
+        self.log = logging.getLogger('RemoteClient {0}'.format(address))
         self.host = host
         self.outbox = collections.deque()
 
@@ -27,6 +28,7 @@ class RemoteClient(asyncore.dispatcher):
         self.outbox.append(message)
 
     def handle_read(self):
+        self.log.info('Read')
         client_message = self.recv(MAX_MESSAGE_LENGTH)
         self.host.broadcast(client_message)
 
@@ -38,38 +40,51 @@ class RemoteClient(asyncore.dispatcher):
             raise ValueError('Message too long')
         self.send(message)
 
-class MainServer(asyncore.dispatcher):
+
+class Host(asyncore.dispatcher):
 
     log = logging.getLogger('Host')
 
-    def __init__(self, port):
+    def __init__(self, address, port):
         asyncore.dispatcher.__init__(self)
+
+        self._thread = None
+
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.log.info("socket create on port '{0}'".format(port))
-        self.bind(('', port))
-        self.listen(10)
-        self.clients = []
+        self.set_reuse_addr()
+        self.bind((address, port))
+        self.listen(1)
+        self.remote_clients = []
+
+    def start(self):
+        """
+                For use when an asyncore.loop is not already running.
+                Starts a threaded loop.
+                """
+        if self._thread is not None:
+            return
+
+        self._thread = threading.Thread(target=asyncore.loop, kwargs={'timeout': 1})
+        self._thread.daemon = True
+        self._thread.start()
 
     def handle_accept(self):
-        conn, addr = self.accept()
-        self.log.info('Connection address:' + addr[0] + " " + str(addr[1]))
-        client = RemoteClient(self, conn, addr)
-        self.clients.append(client)
-        playerid = random.randint(1000, 1000000)
-        client.say(pickle.dumps(['id update', playerid]))
+        socket, addr = self.accept() # For the remote client.
+        self.log.info('Accepted client at %s', addr)
+        self.remote_clients.append(RemoteClient(self, socket, addr))
 
     def handle_read(self):
-        message = self.recv(MAX_MESSAGE_LENGTH);
-        self.log.info('Server received message')
+        self.log.info('Received message: %s', self.read(MAX_MESSAGE_LENGTH))
 
     def broadcast(self, message):
-        self.log.info('broadcast message to clients')
-        for client in self.clients:
-            client.say(message)
+        self.log.info('Broadcasting message: %s', message)
+        for remote_client in self.remote_clients:
+            remote_client.say(message)
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.info('Create host')
-    MainServer(4321)
+    host = Host('localhost', 4321)
+    #host.start()
     asyncore.loop()
