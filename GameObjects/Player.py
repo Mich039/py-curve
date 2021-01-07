@@ -9,14 +9,26 @@ from GameObjects.Score import Score
 
 class Player:
 
-    def __init__(self):
+    def __init__(self, assigned_id: int):
+        self._id = assigned_id
         self._name = None
         self._player_status = None
+        self._angle = None
         self._color = None
         self._head = None
         self._body = None
         self._active_power_ups = None
         self._score = None
+
+    def __hash__(self) -> int:
+        return hash(self._id)
+
+    def __eq__(self, other: Player) -> bool:
+        return self._id == other.id
+
+    @property
+    def id(self) -> int:
+        return self._id
 
     @property
     def name(self) -> str:
@@ -33,6 +45,14 @@ class Player:
     @player_status.setter
     def player_status(self, value: PlayerStatus):
         self._player_status = value
+
+    @property
+    def angle(self) -> int:
+        return self._angle
+
+    @angle.setter
+    def angle(self, value: int):
+        self._angle = value
 
     @property
     def color(self) -> Color:
