@@ -11,6 +11,51 @@ pygame.display.set_caption("Client")
 
 clientNumber = 0
 
+def withinRadius(center, pt, radius):
+    if pt.x + radius < center.x or pt.x - radius > center.x:
+        return False
+    if pt.y + radius < center.y or pt.y - radius > center.y:
+        return False
+    return True
+
+
+def PointsToTuple(points):
+    res = []
+    for p in points:
+        res.append((p.x, p.y))
+    return res
+
+def onSegment(p, q, r):
+    if ( (q.x <= max(p.x, r.x)) and (q.x >= min(p.x, r.x)) and
+           (q.y <= max(p.y, r.y)) and (q.y >= min(p.y, r.y))):
+        return True
+    return False
+
+
+def orientation(p, q, r):
+    # to find the orientation of an ordered triplet (p,q,r)
+    # function returns the following values:
+    # 0 : Colinear points
+    # 1 : Clockwise points
+    # 2 : Counterclockwise
+
+    # See https://www.geeksforgeeks.org/orientation-3-ordered-points/amp/
+    # for details of below formula.
+
+    val = (float(q.y - p.y) * (r.x - q.x)) - (float(q.x - p.x) * (r.y - q.y))
+    if (val > 0):
+
+        # Clockwise orientation
+        return 1
+    elif (val < 0):
+
+        # Counterclockwise orientation
+        return 2
+    else:
+
+        # Colinear orientation
+        return 0
+
 class Point:
     def __init__(self, x, y):
         self.x = x
@@ -32,6 +77,39 @@ class Player:
         self.points = []
         self.invisible_since = None
 
+    def checkCollision(self, p1,q1,p2,q2):
+        #print(f"from1: {p1.x}, {p1.y} - to1: {q1.x}, {q1.y}")
+        #print(f"from2: {p2.x}, {p2.y} - to2: {q2.x}, {q2.y}")
+        o1 = orientation(p1, q1, p2)
+        o2 = orientation(p1, q1, q2)
+        o3 = orientation(p2, q2, p1)
+        o4 = orientation(p2, q2, q1)
+
+        # General case
+        if ((o1 != o2) and (o3 != o4)):
+            return True
+
+        # Special Cases
+
+        # p1 , q1 and p2 are colinear and p2 lies on segment p1q1
+        if ((o1 == 0) and onSegment(p1, p2, q1)):
+            return True
+
+        # p1 , q1 and q2 are colinear and q2 lies on segment p1q1
+        if ((o2 == 0) and onSegment(p1, q2, q1)):
+            return True
+
+        # p2 , q2 and p1 are colinear and p1 lies on segment p2q2
+        if ((o3 == 0) and onSegment(p2, p1, q2)):
+            return True
+
+        # p2 , q2 and q1 are colinear and q1 lies on segment p2q2
+        if ((o4 == 0) and onSegment(p2, q1, q2)):
+            return True
+
+        # If none of the cases
+        return False
+
     def rotate_by(self, deg):
         self.degrees += math.radians(deg)
         #print(f"xVorher: {self.x}")
@@ -44,11 +122,13 @@ class Player:
         for pts in self.points:
             if len(pts) < 2:
                 continue
+            pts = PointsToTuple(pts)
             #for p in self.points:
             #    pygame.draw.circle(win, self.color, p, 3, 0)
             pygame.draw.lines(win, self.color, points=pts, closed=False, width=4)
         if len(self.curr_line) > 2:
-            pygame.draw.lines(win, self.color, points=self.curr_line, closed=False, width=4)
+            toDraw = PointsToTuple(self.curr_line)
+            pygame.draw.lines(win, self.color, points=toDraw, closed=False, width=4)
 
 
     def move(self):
@@ -68,12 +148,33 @@ class Player:
         self.posX += base_speed * self.x
         self.posY += base_speed * self.y
 
-        self.point = (self.posX, self.posY)
+        self.point = Point(self.posX, self.posY)
 
         if self.invisible_since:
             if datetime.now() - self.invisible_since > timedelta(microseconds=random.randint(50000, 100000)):
                 self.invisible_since = None
         else:
+            for sl in self.points:
+                count = 0
+                length = len(sl)
+                startingPoint = None
+                lastPoint = None
+                for p in sl:
+                    count = count + 1
+                    if not withinRadius(self.point, p, 5):
+                        continue
+                    if count % 2 == 0:
+                        continue
+                    if p == startingPoint:
+                        break
+                    if startingPoint is None:
+                        startingPoint = p
+                        lastPoint = p
+                    else:
+                        if len(self.curr_line) > 0:
+                            if(self.checkCollision(self.point, self.curr_line[len(self.curr_line) - 1], lastPoint, p)):
+                                print(f"HIT: {count}")
+                        lastPoint = p
             self.curr_line.append(self.point)
             if random.random() < 0.005:
                 self.invisible_since = datetime.now()
