@@ -50,9 +50,9 @@ def move(player: Player, player_input: PlayerInput):
 
         player.body[len(player.body) - 1].append((player.head.x, player.head.y))
         if random.random() < 0.005:
-            self.invisible_since = datetime.now()
-            self.points.append(self.curr_line)
-            self.curr_line = []
+            player.invisible_since = datetime.now()
+            player.points.append(player.curr_line)
+            player.curr_line = []
 
 def tick():
     for k in player_ticks_to_next_hole.keys():

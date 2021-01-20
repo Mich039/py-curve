@@ -5,7 +5,7 @@ import random
 
 width = 1000
 height = 1000
-base_speed = 5.0
+base_speed = 1.0
 win = pygame.display.set_mode((width, height))
 pygame.display.set_caption("Client")
 
@@ -55,10 +55,10 @@ class Player:
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_LEFT]:
-            self.rotate_by(-3)
+            self.rotate_by(-2)
 
         if keys[pygame.K_RIGHT]:
-            self.rotate_by(3)
+            self.rotate_by(2)
 
         #if keys[pygame.K_UP]:
         #    self.y -= self.vel
@@ -71,7 +71,7 @@ class Player:
         self.point = (self.posX, self.posY)
 
         if self.invisible_since:
-            if datetime.now() - self.invisible_since > timedelta(microseconds=random.randint(50000,100000)):
+            if datetime.now() - self.invisible_since > timedelta(microseconds=random.randint(50000, 100000)):
                 self.invisible_since = None
         else:
             self.curr_line.append(self.point)
@@ -81,8 +81,11 @@ class Player:
                 self.curr_line = []
 
 
+background_image = pygame.image.load("BG.jpeg").convert()
+
 def redrawWindow(win, player):
-    win.fill((255, 255, 255))
+    #win.fill((50, 50, 50))
+    win.blit(background_image, [0, 0])
     player.draw(win)
     pygame.display.update()
 
@@ -92,7 +95,7 @@ if __name__ == '__main__':
     p = Player(50, 50, 10, 10, (0, 255, 0))
     clock = pygame.time.Clock()
     while run:
-        clock.tick(60)
+        clock.tick(100)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
