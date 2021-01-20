@@ -11,6 +11,15 @@ class GameState:
         self._player_list = None
         self._ground_power_up = None
         self._state = None
+        self._game_server_id = None
+
+    @property
+    def game_server_id(self):
+        return self._game_server_id
+
+    @game_server_id.setter
+    def game_server_id(self, value):
+        self._game_server_id = value
 
     @property
     def player_list(self) -> List[Player]:

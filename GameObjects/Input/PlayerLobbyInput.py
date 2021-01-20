@@ -4,6 +4,15 @@ class PlayerLobbyInput:
         self._lobby_id = 0
         self._create_new_lobby = False
         self._username = ''
+        self._leave_lobby = False
+
+    @property
+    def leave_lobby(self):
+        return self._leave_lobby
+
+    @leave_lobby.setter
+    def leave_lobby(self, value):
+        self._leave_lobby = value
 
     @property
     def username(self):

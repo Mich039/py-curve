@@ -1,5 +1,4 @@
 from typing import List
-
 from GameObjects.Color import Color
 from GameObjects.PlayerStatus import PlayerStatus
 from GameObjects.Point import Point
@@ -23,7 +22,9 @@ class Player:
     def __hash__(self) -> int:
         return hash(self._id)
 
-    def __eq__(self, other: Player) -> bool:
+    def __eq__(self, other) -> bool:
+        if type(other) != type(Player):
+            return False
         return self._id == other.id
 
     @property

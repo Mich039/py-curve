@@ -1,12 +1,10 @@
 import math
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict
 
-import pygame
 import random
-import GameObjects
 from GameObjects.Player import Player
-from GameObjects.PlayerInput import PlayerInput
+from GameObjects.Input.PlayerInput import PlayerInput
 
 BASE_SPEED = 1.0
 player_states: Dict[Player, PlayerInput] = dict()

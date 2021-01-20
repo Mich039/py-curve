@@ -1,9 +1,21 @@
+from datetime import datetime
+
+
 class PlayerInput:
 
     def __init__(self):
         self._left = False
         self._right = False
         self._space = False
+        self._timestamp = datetime.now()
+        
+    @property
+    def timestamp(self) -> datetime:
+        return self._timestamp
+    
+    @timestamp.setter
+    def timestamp(self, value: datetime):
+        self._timestamp = value
 
     @property
     def left(self) -> bool:

@@ -38,7 +38,7 @@ class Client(asyncore.dispatcher):
 
     def say(self, message):
         self.outbox.append(message)
-        self.log.info('Enqueued message: %s', message)
+        # self.log.info('Enqueued message: %s', message)
 
     def handle_write(self):
         if not self.outbox:
@@ -49,7 +49,7 @@ class Client(asyncore.dispatcher):
         self.send(message)
 
     def handle_read(self):
-        message = self.recv(MAX_MESSAGE_LENGTH)
+        message = pickle.loads(self.recv(MAX_MESSAGE_LENGTH))
         self.log.info('Received message: %s', message)
 
 
