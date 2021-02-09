@@ -76,8 +76,16 @@ class Player:
         self.curr_line = []
         self.points = []
         self.invisible_since = None
+        self.alive = True
 
-    def checkCollision(self, p1,q1,p2,q2):
+    def is_alive(self):
+        return self.alive
+
+    def game_over(self):
+        self.alive = False
+        print("collision detected!")
+
+    def check_collision(self, p1,q1,p2,q2):
         #print(f"from1: {p1.x}, {p1.y} - to1: {q1.x}, {q1.y}")
         #print(f"from2: {p2.x}, {p2.y} - to2: {q2.x}, {q2.y}")
         o1 = orientation(p1, q1, p2)
@@ -172,8 +180,8 @@ class Player:
                         lastPoint = p
                     else:
                         if len(self.curr_line) > 0:
-                            if(self.checkCollision(self.point, self.curr_line[len(self.curr_line) - 1], lastPoint, p)):
-                                print(f"HIT: {count}")
+                            if(self.check_collision(self.point, self.curr_line[len(self.curr_line) - 1], lastPoint, p)):
+                                self.game_over()
                         lastPoint = p
             self.curr_line.append(self.point)
             if random.random() < 0.005:
@@ -182,11 +190,11 @@ class Player:
                 self.curr_line = []
 
 
-background_image = pygame.image.load("BG.jpeg").convert()
+#background_image = pygame.image.load("BG.jpeg").convert()
 
 def redrawWindow(win, player):
-    #win.fill((50, 50, 50))
-    win.blit(background_image, [0, 0])
+    win.fill((50, 50, 50))
+    #win.blit(background_image, [0, 0])
     player.draw(win)
     pygame.display.update()
 
@@ -202,5 +210,14 @@ if __name__ == '__main__':
                 run = False
                 pygame.quit()
 
-        p.move()
+        if p.is_alive():
+            p.move()
+        else:
+            #run = False
+            keys = pygame.key.get_pressed()
+
+            if keys[pygame.K_SPACE]:
+                p = Player(50, 50, 10, 10, (0, 255, 0))
+
         redrawWindow(win, p)
+
