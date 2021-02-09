@@ -8,7 +8,7 @@ from GameObjects.PowerUp import PowerUp
 class GameState:
 
     def __init__(self):
-        self._player_listList[Player] = []
+        self._player_list: List[Player] = []
         self._to_remove: List[int] = []
         self._ground_power_up = None
         self._state = None
@@ -31,11 +31,11 @@ class GameState:
         self._player_list = value
 
     @property
-    def to_remove(self) -> List[Player]:
+    def to_remove(self) -> List[int]:
         return self._to_remove
 
     @to_remove.setter
-    def to_remove(self, value: List[Player]):
+    def to_remove(self, value: List[int]):
         self._to_remove = value
 
     @property
