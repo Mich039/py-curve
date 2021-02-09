@@ -162,7 +162,7 @@ class Player:
             if datetime.now() - self.invisible_since > timedelta(microseconds=random.randint(50000, 100000)):
                 self.invisible_since = None
         else:
-            for sl in self.points:
+            for sl in [*self.points, self.curr_line]:
                 count = 0
                 length = len(sl)
                 startingPoint = None
@@ -180,14 +180,19 @@ class Player:
                         lastPoint = p
                     else:
                         if len(self.curr_line) > 0:
+                            #The previous point and the latest point in the body are the same.
+                            #This should not cause a colision.
+                            if(self.curr_line[len(self.curr_line) - 1] == p):
+                                continue
                             if(self.check_collision(self.point, self.curr_line[len(self.curr_line) - 1], lastPoint, p)):
                                 self.game_over()
+                                return
                         lastPoint = p
             self.curr_line.append(self.point)
-            if random.random() < 0.005:
-                self.invisible_since = datetime.now()
-                self.points.append(self.curr_line)
-                self.curr_line = []
+            # if random.random() < 0.005:
+            #     self.invisible_since = datetime.now()
+            #     self.points.append(self.curr_line)
+            #     self.curr_line = []
 
 
 #background_image = pygame.image.load("BG.jpeg").convert()
