@@ -5,7 +5,7 @@ class GameServer:
 
     @property
     def id(self):
-        return id
+        return self._id
 
     @id.setter
     def id(self, value):

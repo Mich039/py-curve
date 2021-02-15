@@ -38,50 +38,46 @@ class GameServer:
     def broadcast(self, value):
         self._broadcast = value
 
-    def add(self, id: int):
+    def add_player(self, id: int):
         self._gameState.player_list.append(Player(id))
 
-    def input(self, id: int, playerInput: PlayerInput):
-        self._inputs[id] = playerInput
+    def receive_player_input(self, id: int, player_input: PlayerInput):
+        self._inputs[id] = player_input
 
-    def remove(self, id: int):
+    def remove_player(self, id: int):
         self._gameState.leave(id)
 
-
-
-
-
-    def is_visible(player: Player):
+    def is_visible(self, player: Player):
         if player_hole_ticks_left.get(player, 0) > 0:
             return False
         return True
 
-    def create_hole_for(player: Player):
+    def create_hole_for(self, player: Player):
         player.body.append([])
         if is_visible(player):
             tick_length = random.random(50, 200)
             player_hole_ticks_left[player] = tick_length
 
-    def rotate_by(player: Player, angle: int):
+    def rotate_by(self, player: Player, angle: int):
         Player.angle += math.radians(angle)
         # print(f"xVorher: {self.x}")
         #x = math.sin(angle)
         # print(f"xAfter: {self.x}")
         #y = -math.cos(angle)
 
-    def move(player: Player, player_input: PlayerInput):
+    def move(self, player: Player, player_input: PlayerInput):
         if player_input.left:
-            rotate_by(player, -5)
+            self.rotate_by(player, -5)
 
         if player_input.right:
-            rotate_by(player, 5)
+            self.rotate_by(player, 5)
 
         player.head.x += BASE_SPEED * math.sin(player.angle)
         player.head.y += BASE_SPEED * -math.cos(player.angle)
 
         #self.point = (self.posX, self.posY)
 
-        if is_visible(player):
+        if self.is_visible(player):
             if len(player.body) == 0:
                 player.body.append([])
 
@@ -91,9 +87,9 @@ class GameServer:
                 player.points.append(player.curr_line)
                 player.curr_line = []
 
-    def tick():
+    def tick(self):
         for k in player_ticks_to_next_hole.keys():
             player_ticks_to_next_hole[k] -= 1
         for k in player_hole_ticks_left.keys():
             player_hole_ticks_left[k] -= 1
-        move()
+        self.move()

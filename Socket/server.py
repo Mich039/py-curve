@@ -10,10 +10,9 @@ from GameObjects.GameState import GameState
 from GameObjects.GameState import LobbyState
 from GameObjects.Input.PlayerInput import PlayerInput
 from GameObjects.Input.PlayerLobbyInput import PlayerLobbyInput
-from GameServer.DummyGameServer import GameServer
+from GameServer.GameServer import GameServer
 
 BUFFERSIZE = 512
-
 MAX_MESSAGE_LENGTH = 1024  # message length
 
 _game_servers = dict() # {key: GameServer; value: List<RemoteClient>()}
@@ -33,8 +32,9 @@ class RemoteClient(asyncore.dispatcher):
     def __init__(self, host, socket, address, server_broadcast):
         asyncore.dispatcher.__init__(self, socket)
         self._log = logging.getLogger('RemoteClient {0}'.format(address))
-        #self._client_id = hashlib.sha256(to_hash).hexdigest() #TODO
-        #self._log.info(f'Client-Id {self._client_id}')
+        to_hash = address[0] + str(address[1])
+        self._client_id = hashlib.sha256(to_hash.encode()).hexdigest()
+        self._log.info(f'Client-Id {self._client_id}')
         self._host = host
         self._outbox = collections.deque()
         self._game_server = None
@@ -65,6 +65,7 @@ class RemoteClient(asyncore.dispatcher):
         global _game_servers
         if client_message.create_new_lobby: #create new lobby
             game_server = create_game_server()
+            self._log.info('GameServer created with id {0}'.format(game_server.id))
             game_server.broadcast = self._server_broadcast
             _game_servers[game_server] = [self]
             self._game_server = game_server
@@ -81,7 +82,8 @@ class RemoteClient(asyncore.dispatcher):
             self._log.info('Add Player to Lobby')
         elif client_message._leave_lobby:
             self._log.info('Leave Lobby')
-            pass #TODO remove player from GameServer
+            if self._game_server is not None:
+                self._game_server.leave(self._client_id)
         else:
             self._log.error('Received invalid PlayerLobbyInput')
 
@@ -122,7 +124,7 @@ class Host(asyncore.dispatcher):
         """
                 For use when an asyncore.loop is not already running.
                 Starts a threaded loop.
-                """
+        """
         if self._thread is not None:
             return
 
