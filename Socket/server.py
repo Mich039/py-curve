@@ -15,9 +15,10 @@ from GameServer.GameServer import GameServer
 BUFFERSIZE = 512
 MAX_MESSAGE_LENGTH = 1024  # message length
 
-_game_servers = dict() # {key: GameServer; value: List<RemoteClient>()}
+_game_servers = dict()  # {key: GameServer; value: List<RemoteClient>()}
 _game_server_ids = 1
 _lock = threading.Lock()
+
 
 def create_game_server():
     with _lock:
@@ -25,6 +26,7 @@ def create_game_server():
         id = _game_server_ids
         _game_server_ids += 1
         return GameServer(id)
+
 
 class RemoteClient(asyncore.dispatcher):
     """Wraps a remote client socket."""
@@ -40,13 +42,10 @@ class RemoteClient(asyncore.dispatcher):
         self._game_server = None
         self._server_broadcast = server_broadcast
 
-    def say(self, message):
-        self._outbox.append(message)
-
     def handle_read(self):
         self._log.info('Read')
         received_message = self.recv(MAX_MESSAGE_LENGTH)
-        if(len(received_message) > 0):
+        if len(received_message) > 0:
             client_message = pickle.loads(received_message)
         else:
             self._log.info('received message is empty')
@@ -63,7 +62,8 @@ class RemoteClient(asyncore.dispatcher):
 
     def handle_lobby_input(self, client_message: PlayerLobbyInput):
         global _game_servers
-        if client_message.create_new_lobby: #create new lobby
+        if client_message.create_new_lobby:  # create new lobby
+            self._log.info('creating lobby ...')
             game_server = create_game_server()
             self._log.info('GameServer created with id {0}'.format(game_server.id))
             game_server.broadcast = self._server_broadcast
@@ -72,26 +72,31 @@ class RemoteClient(asyncore.dispatcher):
             game_state = GameState()
             game_state.state = LobbyState.LOBBY
             self._log.info('Lobby created')
-        elif client_message.lobby_id > 0 and not client_message.create_new_lobby:
+        elif client_message.lobby_id > 0 \
+                and not client_message.create_new_lobby:  # join lobby
+            self._log.info('joining lobby ...')
             keys = list(_game_servers.keys())
             game_server = next((x for x in keys if x.id == client_message.lobby_id), None)
-            if game_server == None:
-                return # TODO: maybe send an error back
+            if game_server is None:
+                return  # TODO: maybe send an error back
             self._game_server = game_server
             _game_servers[game_server].push(self)
             self._log.info('Add Player to Lobby')
-        elif client_message._leave_lobby:
-            self._log.info('Leave Lobby')
+        elif client_message.leave_lobby:  # leave lobby
+            self._log.info('Leaving lobby')
             if self._game_server is not None:
                 self._game_server.leave(self._client_id)
         else:
             self._log.error('Received invalid PlayerLobbyInput')
 
     def handle_player_input(self, client_message: PlayerInput):
-        if self._game_server == None:
+        if self._game_server is None:
             self._log.error('Game Server is empty')
-            return # TODO: maybe exception
-        #self._game_server.input(self, client_message)
+            return  # TODO: maybe exception
+        self._game_server.receive_player_input(self, self._client_id, client_message)
+
+    def say(self, message):
+        self._outbox.append(pickle.dumps(message))
 
     def handle_write(self):
         if not self._outbox:
@@ -99,11 +104,13 @@ class RemoteClient(asyncore.dispatcher):
         message = self._outbox.popleft()
         if len(message) > MAX_MESSAGE_LENGTH:
             raise ValueError('Message too long')
-        self.send(pickle.dumps(message))
+        self.send(message)
 
     def handle_close(self) -> None:
         super(RemoteClient, self).handle_close()
-        pass
+        self._log.info('Leaving lobby')
+        if self._game_server is not None:
+            self._game_server.leave(self._client_id)
 
 
 class Host(asyncore.dispatcher):
@@ -136,15 +143,23 @@ class Host(asyncore.dispatcher):
         s, addr = self.accept()  # For the remote client.
         self.log.info('Accepted client at %s', addr)
         self.remote_clients.append(RemoteClient(self, s, addr, self.broadcast))
-        #TODO: send lobbies to client
+        # TODO: send lobbies to client
 
     def handle_read(self):
         self.log.info('Received message: %s', self.read(MAX_MESSAGE_LENGTH))
 
     def broadcast(self, message):
-        self.log.info('Broadcasting message: %s', message)
+        self.log.info('Broadcasting message %s', message)
         for remote_client in self.remote_clients:
             remote_client.say(message)
+
+    def broadcast_game_server(self, game_server_id: int, message):
+        self.log.info('Broadcasting message from game_server %s', message)
+        keys = list(_game_servers.keys())
+        game_server = next((x for x in keys if x.id == game_server_id), None)
+        if game_server is not None:
+            for remote_client in _game_servers[game_server]:
+                remote_client.say(message)
 
 
 if __name__ == '__main__':

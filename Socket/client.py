@@ -7,6 +7,7 @@ import collections
 import threading
 from datetime import datetime
 
+from GameObjects.GameState import GameState
 from GameObjects.Input.PlayerInput import PlayerInput
 from GameObjects.Input.PlayerLobbyInput import PlayerLobbyInput
 
@@ -26,6 +27,16 @@ class Client(asyncore.dispatcher):
         self.log.info('Connecting to host at %s', host)
         self.connect((host, port))
         self.outbox = collections.deque()
+        self._receive_message_event = None
+
+    @property
+    def receive_message_event(self):
+        return self._receive_message_event
+
+    @receive_message_event.setter
+    def receive_message_event(self, value):
+        if callable(value):
+            self._receive_message_event = value
 
     def start(self):
         """
@@ -51,12 +62,16 @@ class Client(asyncore.dispatcher):
         if len(message) > MAX_MESSAGE_LENGTH:
             self.log.error('Message too long')
             return
-        #self.log.info("Write")
         self.send(message)
 
     def handle_read(self):
-        message = pickle.loads(self.recv(MAX_MESSAGE_LENGTH))
+        message = self.recv(MAX_MESSAGE_LENGTH)
         self.log.info('Received message: %s', message)
+        if len(message) > 0:
+            message_decode = pickle.loads(message)
+            if isinstance(message_decode, GameState) and self._receive_message_event is not None:
+                self._receive_message_event(message_decode)
+
 
 def main():
     logging.basicConfig(level=logging.INFO)
