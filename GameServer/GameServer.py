@@ -4,23 +4,31 @@ from typing import Dict
 
 import pygame
 import random
+import sched, time
 import GameObjects
 from GameObjects.GameState import GameState
 from GameObjects.Player import Player
 from GameObjects.Input.PlayerInput import PlayerInput
 
+TICK_RATE = 1.0
 BASE_SPEED = 1.0
 player_states: Dict[Player, PlayerInput] = dict()
 player_ticks_to_next_hole: Dict[Player, int] = dict()
 player_hole_ticks_left: Dict[Player, int] = dict()
 
+
 class GameServer:
-    #Add, input, remove
+    # Add, input, remove
     def __init__(self, id: int):
         self._id = id
         self._gameState = GameState()
         self._broadcast = None
         self._inputs: Dict[int, PlayerInput] = dict()
+        self._scheduler: sched.scheduler = sched.scheduler(time.time, time.sleep)
+        self._canceled: bool
+
+    def start(self):
+        self._scheduler.enter(delay=0, priority=0, action=self.tick, argument=(self,))
 
     @property
     def id(self):
@@ -61,9 +69,9 @@ class GameServer:
     def rotate_by(self, player: Player, angle: int):
         Player.angle += math.radians(angle)
         # print(f"xVorher: {self.x}")
-        #x = math.sin(angle)
+        # x = math.sin(angle)
         # print(f"xAfter: {self.x}")
-        #y = -math.cos(angle)
+        # y = -math.cos(angle)
 
     def move(self, player: Player, player_input: PlayerInput):
         if player_input.left:
@@ -75,7 +83,7 @@ class GameServer:
         player.head.x += BASE_SPEED * math.sin(player.angle)
         player.head.y += BASE_SPEED * -math.cos(player.angle)
 
-        #self.point = (self.posX, self.posY)
+        # self.point = (self.posX, self.posY)
 
         if self.is_visible(player):
             if len(player.body) == 0:
@@ -88,6 +96,9 @@ class GameServer:
                 player.curr_line = []
 
     def tick(self):
+        if not self._canceled:
+            self._scheduler.enterabs(time=time.time() + 1 / TICK_RATE, priority=0, action=self.tick, argument=(self,))
+
         for k in player_ticks_to_next_hole.keys():
             player_ticks_to_next_hole[k] -= 1
         for k in player_hole_ticks_left.keys():
