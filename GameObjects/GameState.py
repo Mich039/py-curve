@@ -31,11 +31,11 @@ class GameState:
         self._player_list = value
 
     @property
-    def to_remove(self) -> List[Player]:
+    def to_remove(self) -> List[int]:
         return self._to_remove
 
     @to_remove.setter
-    def to_remove(self, value: List[Player]):
+    def to_remove(self, value: List[int]):
         self._to_remove = value
 
     @property

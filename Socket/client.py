@@ -7,6 +7,9 @@ import collections
 import threading
 from datetime import datetime
 
+from GameObjects.Input.PlayerInput import PlayerInput
+from GameObjects.Input.PlayerLobbyInput import PlayerLobbyInput
+
 MAX_MESSAGE_LENGTH = 1024
 
 
@@ -37,7 +40,8 @@ class Client(asyncore.dispatcher):
         self._thread.start()
 
     def say(self, message):
-        self.outbox.append(message)
+        self.log.info("Send: {0}".format(type(message)))
+        self.outbox.append(pickle.dumps(message))
         # self.log.info('Enqueued message: %s', message)
 
     def handle_write(self):
@@ -45,23 +49,29 @@ class Client(asyncore.dispatcher):
             return
         message = self.outbox.popleft()
         if len(message) > MAX_MESSAGE_LENGTH:
-            raise ValueError('Message too long')
+            self.log.error('Message too long')
+            return
+        #self.log.info("Write")
         self.send(message)
 
     def handle_read(self):
         message = pickle.loads(self.recv(MAX_MESSAGE_LENGTH))
         self.log.info('Received message: %s', message)
 
-
 def main():
     logging.basicConfig(level=logging.INFO)
     client = Client("127.0.0.1", 4321, 'test_1')
     client.start()
-    client.say(pickle.dumps(datetime.now()))
 
+    lobby = PlayerLobbyInput()
+    lobby.create_new_lobby = True
+    client.say(lobby)
+    input = PlayerInput()
+    input.left = True
+    client.say(input)
     while (1):
-        time.sleep(1)
-        client.say(pickle.dumps(datetime.now()))
+        time.sleep(3)
+
 
 
 if __name__ == '__main__':
