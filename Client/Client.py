@@ -23,19 +23,26 @@ clientNumber = 0
 def init_client():
     global client
     client = Client(IP, PORT, 'test_1')
+    client.receive_message_event = handle_gamestate
     client.start()
+
 
 def set_state(state):
     global currentState
     currentState = state
 
 def join(id: int):
-    if id < 0: return
-    lobby = PlayerLobbyInput.PlayerLobbyInput()
-    lobby.create_new_lobby = False
-    lobby.lobby_id = id
-    client.say(lobby)
-    set_state(STATES.lobby)
+    if id < 0:
+        lobby = PlayerLobbyInput.PlayerLobbyInput()
+        lobby.create_new_lobby = True
+        client.say(lobby)
+        set_state(STATES.lobby)
+    else:
+        lobby = PlayerLobbyInput.PlayerLobbyInput()
+        lobby.create_new_lobby = False
+        lobby.lobby_id = id
+        client.say(lobby)
+        set_state(STATES.lobby)
 
 def render_waiting_for_start():
     WINDOW.fill((30, 30, 30))
@@ -95,19 +102,19 @@ def render_menu():
         pg.draw.rect(WINDOW, color, input_box, 2)
         pg.display.flip()
 
-
+def handle_gamestate(msg):
+    print("called")
+    print(msg)
+    
 if __name__ == '__main__':
     init_client()
-
     clock = pg.time.Clock()
     pg.init()
-    while(1):
+    while True:
         if currentState == STATES.menu:
             render_menu()
         if currentState == STATES.lobby:
             render_waiting_for_start()
-            #global client
-            #client.
         if currentState == STATES.ingame:
             pass
         clock.tick(100)
