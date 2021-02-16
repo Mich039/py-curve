@@ -148,11 +148,6 @@ class Player:
         if keys[pygame.K_RIGHT]:
             self.rotate_by(2)
 
-        #if keys[pygame.K_UP]:
-        #    self.y -= self.vel
-
-        #if keys[pygame.K_DOWN]:
-        #    self.y += self.vel
         self.posX += base_speed * self.x
         self.posY += base_speed * self.y
 
@@ -189,10 +184,10 @@ class Player:
                                 return
                         lastPoint = p
             self.curr_line.append(self.point)
-            # if random.random() < 0.005:
-            #     self.invisible_since = datetime.now()
-            #     self.points.append(self.curr_line)
-            #     self.curr_line = []
+            if random.random() < 0.005:
+                 self.invisible_since = datetime.now()
+                 self.points.append(self.curr_line)
+                 self.curr_line = []
 
 
 #background_image = pygame.image.load("BG.jpeg").convert()
