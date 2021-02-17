@@ -1,24 +1,17 @@
-import math
-import threading
-from datetime import datetime
+import sched
+import time
+import random
 from typing import Dict
 
-import random
-import sched, time
+from GameObjects.Input.PlayerInput import PlayerInput
 from GameObjects.LobbyState import LobbyState
 from GameObjects.Player import Player
-from GameObjects.Input.PlayerInput import PlayerInput
 from GameObjects.PlayerStatus import PlayerStatus
+from GameObjects.Point import Point
 from GameServer.GameServerWrappers.GameStateWrapper import GameStateWrapper
 from GameServer.GameServerWrappers.PlayerInputWrapper import PlayerInputWrapper
 from GameServer.GameServerWrappers.PlayerWrapper import PlayerWrapper
-
-PLAY_AREA_SIZE = 1000
-TICK_RATE = 1.0
-BASE_SPEED = 1.0
-player_states: Dict[Player, PlayerInput] = dict()
-player_ticks_to_next_hole: Dict[Player, int] = dict()
-player_hole_ticks_left: Dict[Player, int] = dict()
+import GameServer.ServerConstants as ServerConstants
 
 
 class GameServer:
@@ -59,8 +52,10 @@ class GameServer:
         self._gameState.player_list[id] = new_payer
 
     def receive_player_input(self, id: int, player_input: PlayerInput):
-        self._inputs[id] = PlayerInputWrapper(player_input)
-        # TODO: Check for the Timestamp
+        if id not in self._inputs or self._inputs[id].timestamp < player_input.timestamp:
+            self._inputs[id] = PlayerInputWrapper(player_input)
+        else:
+            print("Player with id: {id} sent outdated Input".format(id=id))
 
     def remove_player(self, id: int):
         self._gameState.remove(id)
@@ -72,18 +67,21 @@ class GameServer:
             return PlayerStatus.NOT_READY
 
     def _init_new_round(self):
-        pass
+        for player in self._gameState.player_list.values():
+            player.init_position(GameServer._get_random_point(), GameServer._get_random_angle())
 
     def _init_new_game(self):
-        pass
+        for player in self._gameState.player_list.values():
+            player.reset_score()
+        self._init_new_round()
 
     def _broadcast_state(self):
         if self._broadcast is not None:
-            self._broadcast(self.id,self._gameState.to_game_state())
+            self._broadcast(self.id, self._gameState.to_game_state())
 
     def _tick(self):
         if not self._canceled:
-            self._scheduler.enterabs(time=time.time() + 1 / TICK_RATE, priority=0, action=self._tick)
+            self._scheduler.enterabs(time=time.time() + 1 / ServerConstants.TICK_RATE, priority=0, action=self._tick)
 
         # React depending on State
         if self._gameState.state == LobbyState.IN_GAME:
@@ -94,6 +92,15 @@ class GameServer:
             self._lobby_tick()
 
         self._inputs_processed()
+
+    @staticmethod
+    def _get_random_angle() -> float:
+        return random.uniform(0, 360)
+
+    @staticmethod
+    def _get_random_point() -> Point:
+        return Point(random.uniform(0, ServerConstants.PLAY_AREA_SIZE),
+                     random.uniform(0, ServerConstants.PLAY_AREA_SIZE))
 
     def _inputs_processed(self):
         for input in self._inputs.values():
@@ -122,11 +129,10 @@ class GameServer:
             self._broadcast_state()
 
     def _in_game_tick(self):
-        for k in player_ticks_to_next_hole.keys():
-            player_ticks_to_next_hole[k] -= 1
-        for k in player_hole_ticks_left.keys():
-            player_hole_ticks_left[k] -= 1
-        self.move()
-
+        for player_id, player in self._gameState.player_list.items():
+            if player.is_alive:
+                player.is_alive = player.move(self._inputs[player_id], game_state=self._gameState)
+                # TODO: Calculate Score if a player dies
+        self._broadcast_state()
     def _between_game_tick(self):
         pass

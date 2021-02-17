@@ -12,12 +12,12 @@ class Player:
         self._id: int = assigned_id
         self._name = None
         self._player_status = None
-        self._angle = None
+        self._angle: float = None
         self._color = None
         self._head = None
         self._body = None
         self._active_power_ups = None
-        self._score = None
+        self._score = Score()
 
     def __hash__(self) -> int:
         return hash(self._id)
@@ -48,11 +48,11 @@ class Player:
         self._player_status = value
 
     @property
-    def angle(self) -> int:
+    def angle(self) -> float:
         return self._angle
 
     @angle.setter
-    def angle(self, value: int):
+    def angle(self, value: float):
         self._angle = value
 
     @property

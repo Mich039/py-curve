@@ -8,7 +8,7 @@ from GameServer.GameServer import GameServer
 
 def broadcast(id: int, state: GameState):
     print("Server id: {id}".format(id=id))
-    print(state.player_list[1].player_status)
+    print(state.player_list[1].head)
 
 
 if __name__ == '__main__':

@@ -1,9 +1,9 @@
 class Score:
 
     def __init__(self):
-        self._score_points = None
-        self._power_up_points = None
-        self._deaths = None
+        self._score_points = 0
+        self._power_up_points = 0
+        self._deaths = 0
 
     @property
     def score_points(self) -> int:
