@@ -23,7 +23,6 @@ class Client(threading.Thread, asyncore.dispatcher):
         self._thread_sockets = dict()
         asyncore.dispatcher.__init__(self, map=self._thread_sockets)
         self.daemon = True
-
         self.host = host
         self.port = port
 
@@ -48,6 +47,8 @@ class Client(threading.Thread, asyncore.dispatcher):
                 Starts a threaded loop.
                 """
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.settimeout(5)
+        self.socket.setblocking(1)
         self.connect((self.host, self.port))
         asyncore.loop(map=self._thread_sockets)
 
@@ -65,10 +66,15 @@ class Client(threading.Thread, asyncore.dispatcher):
         self.send(message)
 
     def handle_read(self):
-        message = self.recv(MAX_MESSAGE_LENGTH)
-        self.log.info('Received message: %s', message)
-        if len(message) > 0:
-            message_decode = pickle.loads(message)
+        data = []
+        while True:
+            packet = self.recv(MAX_MESSAGE_LENGTH)
+            if not packet:
+                break
+            data.append(packet)
+        if len(data) > 0 and len(data[0]) > 0:
+            self.log.info('Received messages: %s', len(data))
+            message_decode = pickle.loads(b"".join(data))
             if isinstance(message_decode, GameState) and self._receive_message_event is not None:
                 self._receive_message_event(message_decode)
 
