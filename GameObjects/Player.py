@@ -8,8 +8,8 @@ from GameObjects.Score import Score
 
 class Player:
 
-    def __init__(self, assigned_id: int):
-        self._id: int = assigned_id
+    def __init__(self, assigned_id: str):
+        self._id: str = assigned_id
         self._name = None
         self._player_status = None
         self._angle: float = None
@@ -28,7 +28,7 @@ class Player:
         return self._id == other.id
 
     @property
-    def id(self) -> int:
+    def id(self) -> str:
         return self._id
 
     @property
