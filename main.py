@@ -6,7 +6,8 @@ from GameObjects.Input.PlayerInput import PlayerInput
 from GameServer.GameServer import GameServer
 
 
-def broadcast(state: GameState):
+def broadcast(id: int, state: GameState):
+    print("Server id: {id}".format(id=id))
     print(state.player_list[1].player_status)
 
 

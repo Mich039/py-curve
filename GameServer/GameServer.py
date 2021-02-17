@@ -13,6 +13,7 @@ from GameServer.GameServerWrappers.GameStateWrapper import GameStateWrapper
 from GameServer.GameServerWrappers.PlayerInputWrapper import PlayerInputWrapper
 from GameServer.GameServerWrappers.PlayerWrapper import PlayerWrapper
 
+PLAY_AREA_SIZE = 1000
 TICK_RATE = 1.0
 BASE_SPEED = 1.0
 player_states: Dict[Player, PlayerInput] = dict()
@@ -31,7 +32,7 @@ class GameServer:
         self._canceled: bool = False
 
     def start(self):
-        print("Server has started")
+        print("Server with id {id} has started".format(id=self.id))
         self._gameState.state = LobbyState.LOBBY
         self._scheduler.enter(delay=0, priority=0, action=self._tick)
         self._scheduler.run()
@@ -64,56 +65,21 @@ class GameServer:
     def remove_player(self, id: int):
         self._gameState.remove(id)
 
-    def is_visible(self, player: Player):
-        if player_hole_ticks_left.get(player, 0) > 0:
-            return False
-        return True
-
-    def create_hole_for(self, player: Player):
-        pass
-        # player.body.append([])
-        # if is_visible(player):
-        #     tick_length = random.random(50, 200)
-        #     player_hole_ticks_left[player] = tick_length
-
-    def rotate_by(self, player: Player, angle: int):
-        Player.angle += math.radians(angle)
-        # print(f"xVorher: {self.x}")
-        # x = math.sin(angle)
-        # print(f"xAfter: {self.x}")
-        # y = -math.cos(angle)
-
-    def move(self, player: Player, player_input: PlayerInput):
-        if player_input.left:
-            self.rotate_by(player, -5)
-
-        if player_input.right:
-            self.rotate_by(player, 5)
-
-        player.head.x += BASE_SPEED * math.sin(player.angle)
-        player.head.y += BASE_SPEED * -math.cos(player.angle)
-
-        # self.point = (self.posX, self.posY)
-
-        if self.is_visible(player):
-            if len(player.body) == 0:
-                player.body.append([])
-
-            player.body[len(player.body) - 1].append((player.head.x, player.head.y))
-            if random.random() < 0.005:
-                player.invisible_since = datetime.now()
-                player.body.append(player.curr_line)
-                player.curr_line = []
-
     def _get_current_default_player_status(self) -> PlayerStatus:
         if self._gameState.state == LobbyState.IN_GAME:
             return PlayerStatus.SPECTATING
         else:
             return PlayerStatus.NOT_READY
 
+    def _init_new_round(self):
+        pass
+
+    def _init_new_game(self):
+        pass
+
     def _broadcast_state(self):
         if self._broadcast is not None:
-            self._broadcast(self._gameState.to_game_state())
+            self._broadcast(self.id,self._gameState.to_game_state())
 
     def _tick(self):
         if not self._canceled:
@@ -122,7 +88,7 @@ class GameServer:
         # React depending on State
         if self._gameState.state == LobbyState.IN_GAME:
             self._in_game_tick()
-        elif self._gameState.state == LobbyState.IN_GAME:
+        elif self._gameState.state == LobbyState.BETWEEN_GAMES:
             self._between_game_tick()
         else:
             self._lobby_tick()
@@ -134,6 +100,7 @@ class GameServer:
             input.processed = True
 
     def _lobby_tick(self):
+        # Process Inputs
         change: bool = False
         for key, value in self._inputs.items():
             if value.space and not value.processed:
@@ -142,7 +109,16 @@ class GameServer:
                     PlayerStatus.READY if old_state == PlayerStatus.NOT_READY else PlayerStatus.NOT_READY
                 change = True
 
-        if change:
+        # Check if all Players are ready
+        all_ready: bool = len(self._gameState.player_list) > 0
+        for player_id, player in self._gameState.player_list.items():
+            all_ready = all_ready and player.player.player_status == PlayerStatus.READY
+
+        if all_ready:
+            self._init_new_game()
+            self._gameState.state = LobbyState.IN_GAME
+
+        elif change:
             self._broadcast_state()
 
     def _in_game_tick(self):
