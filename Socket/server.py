@@ -80,7 +80,7 @@ class RemoteClient(asyncore.dispatcher):
             if game_server is None:
                 return  # TODO: maybe send an error back
             self._game_server = game_server
-            _game_servers[game_server].push(self)
+            _game_servers[game_server].append(self) #changed by Sebastian: list needs append
             self._log.info('Add Player to Lobby')
         elif client_message.leave_lobby:  # leave lobby
             self._log.info('Leaving lobby')
