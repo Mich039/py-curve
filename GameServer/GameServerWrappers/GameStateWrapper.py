@@ -1,14 +1,15 @@
-from typing import List
+from typing import List, Dict
 
+from GameObjects.GameState import GameState
 from GameObjects.LobbyState import LobbyState
-from GameObjects.Player import Player
 from GameObjects.PowerUp import PowerUp
+from GameServer.GameServerWrappers.PlayerWrapper import PlayerWrapper
 
 
-class GameState:
+class GameStateWrapper:
 
     def __init__(self):
-        self._player_list: List[Player] = []
+        self._player_list: Dict[int, PlayerWrapper] = dict()
         self._to_remove: List[int] = []
         self._ground_power_up = None
         self._state: LobbyState = None
@@ -23,11 +24,11 @@ class GameState:
         self._game_server_id = value
 
     @property
-    def player_list(self) -> List[Player]:
+    def player_list(self) -> Dict[int, PlayerWrapper]:
         return self._player_list
 
     @player_list.setter
-    def player_list(self, value: List[Player]):
+    def player_list(self, value: Dict[int, PlayerWrapper]):
         self._player_list = value
 
     @property
@@ -56,3 +57,11 @@ class GameState:
 
     def remove(self, id: int):
         self._to_remove.append(id)
+
+    def to_game_state(self) -> GameState:
+        game_state = GameState()
+        game_state.player_list = {k: v.player for k, v in self._player_list.items()}
+        game_state.state = self._state
+        game_state.game_server_id = self._game_server_id
+        game_state.ground_power_up = self._ground_power_up
+        return game_state

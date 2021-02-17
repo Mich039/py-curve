@@ -9,7 +9,7 @@ from GameObjects.Score import Score
 class Player:
 
     def __init__(self, assigned_id: int):
-        self._id = assigned_id
+        self._id: int = assigned_id
         self._name = None
         self._player_status = None
         self._angle = None
