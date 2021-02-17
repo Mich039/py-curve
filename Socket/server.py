@@ -104,8 +104,8 @@ class RemoteClient(asyncore.dispatcher):
         if not self._outbox:
             return
         message = self._outbox.popleft()
-        if len(message) > MAX_MESSAGE_LENGTH:
-            raise ValueError('Message too long')
+        # if len(message) > MAX_MESSAGE_LENGTH:
+        #     raise ValueError('Message too long')
         self.send(message)
 
     def handle_close(self) -> None:

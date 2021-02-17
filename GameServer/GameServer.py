@@ -84,7 +84,7 @@ class GameServer:
 
     def _broadcast_state(self):
         if self._broadcast is not None:
-            self._broadcast(self.id,self._gameState.to_game_state())
+            self._broadcast(self.id, self._gameState.to_game_state())
 
     def _tick(self):
         if not self._canceled:

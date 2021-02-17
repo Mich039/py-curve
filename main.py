@@ -50,41 +50,37 @@ def main_socket_test():
     host = Host('127.0.0.1', 4321)
     host.start(False)
 
-    client_1 = Client("127.0.0.1", 4321, 'client_1')
-    # client_1.start()
+    number_of_clients = 10
 
-    client_2 = Client("127.0.0.1", 4321, 'client_2')
+    clients = list()
+
+    for i in range(number_of_clients):
+        clients.append(Client("127.0.0.1", 4321, 'client_{0}'.format(i)))
+        time.sleep(0.3)
+
     # client_2.start()
 
     # create lobby
     lobby_input = PlayerLobbyInput()
     lobby_input.create_new_lobby = True
 
-    client_1.say(lobby_input)
+    clients[0].say(lobby_input)
 
     time.sleep(1)
+
     # join lobby
     lobby_input_join = PlayerLobbyInput()
     lobby_input_join.lobby_id = 1
+    for i in range(1, number_of_clients):
+        clients[i].say(lobby_input_join)
+        time.sleep(0.3)
 
-    client_2.say(lobby_input_join)
-
-    client_to_send = 1
     while True:
         input = generate_random_input()
-        if client_to_send == 1:
-            client_1.say(input)
-            client_to_send = 2
-        elif client_to_send == 2:
-            client_2.say(input)
-            client_to_send = 3
-        elif client_to_send == 3:
-            client_1.say(input)
-            client_2.say(input)
-            client_to_send = 1
+        client_index = random.randint(0, number_of_clients - 1)
+        clients[client_index].say(input)
         time.sleep(2)
 
-    time.sleep(5)
 
 if __name__ == '__main__':
     # main_test()
