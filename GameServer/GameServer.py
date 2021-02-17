@@ -1,3 +1,4 @@
+import logging
 import math
 import threading
 from datetime import datetime
@@ -24,15 +25,17 @@ player_hole_ticks_left: Dict[Player, int] = dict()
 class GameServer:
     # Add, input, remove
     def __init__(self, id: int):
+        self._log = logging.getLogger('GameServer {0}'.format(id))
         self._id = id
         self._gameState: GameStateWrapper = GameStateWrapper()
         self._broadcast = None
-        self._inputs: Dict[int, PlayerInputWrapper] = dict()
+        self._inputs: Dict[str, PlayerInputWrapper] = dict()
         self._scheduler: sched.scheduler = sched.scheduler(time.time, time.sleep)
         self._canceled: bool = False
+        self._log.info("Created")
 
     def start(self):
-        print("Server with id {id} has started".format(id=self.id))
+        self._log.info("Server with id {id} has started".format(id=self.id))
         self._gameState.state = LobbyState.LOBBY
         self._scheduler.enter(delay=0, priority=0, action=self._tick)
         self._scheduler.run()
@@ -53,16 +56,18 @@ class GameServer:
     def broadcast(self, value):
         self._broadcast = value
 
-    def add_player(self, id: int):
+    def add_player(self, id: str):
+        self._log.info("Add player with id {0}".format(id))
         new_payer = PlayerWrapper(Player(id))
         new_payer.player.player_status = self._get_current_default_player_status()
         self._gameState.player_list[id] = new_payer
+        self._broadcast_state()
 
-    def receive_player_input(self, id: int, player_input: PlayerInput):
+    def receive_player_input(self, id: str, player_input: PlayerInput):
         self._inputs[id] = PlayerInputWrapper(player_input)
         # TODO: Check for the Timestamp
 
-    def remove_player(self, id: int):
+    def remove_player(self, id: str):
         self._gameState.remove(id)
 
     def _get_current_default_player_status(self) -> PlayerStatus:

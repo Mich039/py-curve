@@ -81,6 +81,7 @@ class RemoteClient(asyncore.dispatcher):
                 self._log.error('No GamerServer found for joining. Id: {0}'.format(client_message.lobby_id))
                 return  # TODO: maybe send an error back
             self._game_server = game_server
+            self._game_server.add_player(self._client_id)
             _game_servers[game_server].append(self) #changed by Sebastian: list needs append
             self._log.info('Add Player to Lobby')
         elif client_message.leave_lobby:  # leave lobby
