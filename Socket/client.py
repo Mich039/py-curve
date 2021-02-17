@@ -14,20 +14,24 @@ from GameObjects.Input.PlayerLobbyInput import PlayerLobbyInput
 MAX_MESSAGE_LENGTH = 1024
 
 
-class Client(asyncore.dispatcher):
+class Client(threading.Thread, asyncore.dispatcher):
 
     def __init__(self, host, port, name):
-        asyncore.dispatcher.__init__(self)
-
+        threading.Thread.__init__(self)
         self._thread = None
-
         self.log = logging.getLogger('Client (%7s)' % name)
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._thread_sockets = dict()
+        asyncore.dispatcher.__init__(self, map=self._thread_sockets)
+        self.daemon = True
+
+        self.host = host
+        self.port = port
+
         self.name = name
         self.log.info('Connecting to host at %s', host)
-        self.connect((host, port))
         self.outbox = collections.deque()
         self._receive_message_event = None
+        self.start()
 
     @property
     def receive_message_event(self):
@@ -38,22 +42,18 @@ class Client(asyncore.dispatcher):
         if callable(value):
             self._receive_message_event = value
 
-    def start(self):
+    def run(self):
         """
                 For use when an asyncore.loop is not already running.
                 Starts a threaded loop.
                 """
-        if self._thread is not None:
-            return
-
-        self._thread = threading.Thread(target=asyncore.loop, kwargs={'timeout': 1})
-        self._thread.daemon = True
-        self._thread.start()
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connect((self.host, self.port))
+        asyncore.loop(map=self._thread_sockets)
 
     def say(self, message):
         self.log.info("Send: {0}".format(type(message)))
         self.outbox.append(pickle.dumps(message))
-        # self.log.info('Enqueued message: %s', message)
 
     def handle_write(self):
         if not self.outbox:
