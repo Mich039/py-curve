@@ -5,7 +5,7 @@ from GameObjects import GameState, PlayerStatus
 from GameObjects.LobbyState import LobbyState
 from Socket.client import Client
 
-IP = "127.0.0.1"
+IP = "192.168.100.11"
 PORT = 4321
 WIDTH = 1000
 HEIGHT = 1000
@@ -24,7 +24,6 @@ class GameClient:
     def init_client(self, ip=IP, port=PORT, name="User"):
         self._client = Client(ip, port, name)
         self._client.receive_message_event = self.handle_gamestate
-        #self._client.start()
 
     def join(self, id: int):
         if id < 0:
@@ -36,7 +35,6 @@ class GameClient:
             lobby.create_new_lobby = False
             lobby.lobby_id = id
             self._client.say(lobby)
-        #self._gameState = Game
 
     def test(self):
         self._window.fill((30, 30, 30))
@@ -57,6 +55,29 @@ class GameClient:
             res.append((p.x, p.y))
         return res
 
+    def render_between_rounds(self):
+        text_recs = []
+        texts = []
+        font = pg.font.Font(None, 32)
+
+        self._window.fill((50, 50, 50))
+
+        h = font.render("--- Score ---")
+        hr = h.get_rect()
+        self._window.blit(h, hr)
+
+        count = 0
+        for player in self._gameState.player_list:
+            count = count + 1
+            color = player.color
+            t = font.render(f'{player.score.score_points}', True, color)
+            tr = t.get_rect()
+            tr.center = (WIDTH // 2, HEIGHT // 2 + 10 * count)
+            text_recs.append(tr)
+            texts.append(t)
+        for i in range(len(texts)):
+            self._window.blit(texts[i], text_recs[i])
+
     def render_game(self):
         self._window.fill((50, 50, 50))
         for player in self._gameState.player_list:
@@ -66,50 +87,49 @@ class GameClient:
                 sublist = self.PointsToTuple(sublist)
                     # for p in self.points:
                     #    pygame.draw.circle(win, self.color, p, 3, 0)
-                pg.draw.lines(self._window, (0, 255, 0), points=sublist, closed=False, width=4)
+                pg.draw.lines(self._window, (0, 255, 0), points=sublist, closed=False, width=2)
+                pg.draw.lines(self._window, (0, 255, 0), points=sublist, closed=False, width=-2)
+            pg.draw.circle(self._window, (255, 255, 0), (player.head.x, player.head.y), 4)
+
 
         input = PlayerInput.PlayerInput()
         for event in pg.event.get():
             if event.type == pg.KEYDOWN:
-                if event.key == pg.K_LEFT:
-                    input.left = True
-                elif event.key == pg.K_RIGHT:
-                    input.right = True
+                    if event.key == pg.K_LEFT:
+                        input.left = True
+                    elif event.key == pg.K_RIGHT:
+                        input.right = True
             self._client.say(input)
 
 
 
     def render_lobby_state(self):
-        #ready = False
-        done = False
         self._window.fill((30, 30, 30))
-
-        #print("in lobby")
         readyCount = len([x for x in self._gameState.player_list if x.player_status == PlayerStatus.PlayerStatus.READY])
         playerCount = len(self._gameState.player_list)
-        blue = (0, 0, 128)
 
+        blue = (0, 0, 128)
         green = (0, 255, 0)
+
         font = pg.font.Font(None, 32)
         text = font.render('Waiting For Start', True, green, blue)
         textRect = text.get_rect()
         textRect.center = (WIDTH // 2, HEIGHT // 2 - 100)
 
-        #while not done:
-            #print("in loopdidoop")
-
         for event in pg.event.get():
             # toggle ready
             if event.type == pg.KEYDOWN:
+                input = PlayerInput.PlayerInput()
                 if event.key == pg.K_SPACE:
                     print("SPACE pressed")
                     #ready = not ready
-                    input = PlayerInput.PlayerInput()
                     input.space = True
                     #print("SPACE")
-                    self._client.say(input)
-
-        #print("graphical stuff")
+                elif event.key == pg.key.K_LEFT:
+                    input.left = True
+                elif event.key == pg.key.K_RIGHT:
+                    input.right = True
+                self._client.say(input)
 
         readyText = font.render(f'{readyCount} of {playerCount} Players ready', True, green)
         readyRect = readyText.get_rect()
@@ -183,6 +203,8 @@ class GameClient:
                     self.render_lobby_state()
                 elif self._gameState.state == LobbyState.IN_GAME:
                     self.render_game()
+                elif self._gameState.state == LobbyState.BETWEEN_GAMES:
+                    self.render_game(True)
             clock.tick(100)
             pg.display.update()
         pg.quit()
