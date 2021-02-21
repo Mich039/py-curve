@@ -11,7 +11,7 @@ class GameState:
         self._player_list: List[Player] = []
         self._to_remove: List[int] = []
         self._ground_power_up = None
-        self._state: LobbyState = None
+        self._state: LobbyState = LobbyState.LOBBY
         self._game_server_id = None
 
     @property

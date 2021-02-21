@@ -35,7 +35,7 @@ class GameServer:
         self._log.info("Server with id {id} has started".format(id=self.id))
         self._gameState.state = LobbyState.LOBBY
         self._scheduler.enter(delay=0, priority=0, action=self._tick)
-        self._scheduler.run()
+        self._scheduler.run(blocking=True)
 
     @property
     def id(self):
@@ -97,6 +97,7 @@ class GameServer:
             self._broadcast(self.id, self._gameState.to_game_state())
 
     def _tick(self):
+        print("ticking...")
         if not self._canceled:
             start_time = time.time()
             next_start_time = start_time + 1 / ServerConstants.TICK_RATE
@@ -106,14 +107,16 @@ class GameServer:
         # React depending on State
         if self._gameState.state == LobbyState.IN_GAME:
             self._in_game_tick()
+            time_taken = (time.time() * 1000 - start_time * 1000)
+            print("Time taken: {time:.10f} ms {time_perc}%".format(time=time_taken,
+                                                                   time_perc=time_taken / time_available))
         elif self._gameState.state == LobbyState.BETWEEN_GAMES:
             self._between_game_tick()
         else:
             self._lobby_tick()
 
         self._inputs_processed()
-        time_taken = (time.time()*1000 - start_time*1000)
-        print("Time taken: {time:.10f} ms {time_perc}%".format(time=time_taken, time_perc=time_taken/time_available))
+
 
     @staticmethod
     def _get_random_angle() -> float:

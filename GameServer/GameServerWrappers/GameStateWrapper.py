@@ -11,7 +11,7 @@ class GameStateWrapper:
         self._player_list: Dict[str, PlayerWrapper] = dict()
         self._to_remove: List[str] = []
         self._ground_power_up = None
-        self._state: LobbyState = None
+        self._state: LobbyState = LobbyState.LOBBY
         self._game_server_id = None
 
     @property
@@ -59,7 +59,7 @@ class GameStateWrapper:
 
     def to_game_state(self) -> GameState:
         game_state = GameState()
-        game_state.player_list = {k: v.player for k, v in self._player_list.items()}
+        game_state.player_list = [v.player for k, v in self._player_list.items()]
         game_state.state = self._state
         game_state.game_server_id = self._game_server_id
         game_state.ground_power_up = self._ground_power_up

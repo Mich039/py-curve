@@ -11,7 +11,7 @@ from GameObjects.GameState import GameState
 from GameObjects.Input.PlayerInput import PlayerInput
 from GameObjects.Input.PlayerLobbyInput import PlayerLobbyInput
 
-MAX_MESSAGE_LENGTH = 1024
+MAX_MESSAGE_LENGTH = 2000000
 
 
 class Client(threading.Thread, asyncore.dispatcher):
@@ -67,11 +67,14 @@ class Client(threading.Thread, asyncore.dispatcher):
 
     def handle_read(self):
         data = []
-        while True:
-            packet = self.recv(MAX_MESSAGE_LENGTH)
-            if not packet:
-                break
-            data.append(packet)
+        #while True:
+            #print("b4 receive")
+        packet = self.recv(MAX_MESSAGE_LENGTH)
+            #print("after receive")
+            #if not packet:
+            #    print("break")
+            #    break
+        data.append(packet)
         if len(data) > 0 and len(data[0]) > 0:
             self.log.info('Received messages: %s', len(data))
             message_decode = pickle.loads(b"".join(data))

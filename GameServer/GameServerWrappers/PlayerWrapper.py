@@ -14,7 +14,7 @@ class PlayerWrapper:
         self._invisible_ticks: int = 0
         self._visible_ticks: int = 1000
         # self._is_alive: bool = False
-        self._velocity: float = 1.0
+        self._velocity: float = ServerConstants.BASE_SPEED
 
     @property
     def player(self) -> Player:

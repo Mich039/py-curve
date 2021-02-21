@@ -65,12 +65,15 @@ class RemoteClient(asyncore.dispatcher):
         if client_message.create_new_lobby:  # create new lobby
             self._log.info('creating lobby ...')
             game_server = create_game_server()
+            # GameServer has to be started
+            thread = threading.Thread(target=game_server.start)
+            thread.start()
+            #game_server.start()
             self._log.info('GameServer created with id {0}'.format(game_server.id))
             game_server.broadcast = self._server_broadcast
             _game_servers[game_server] = [self]
             self._game_server = game_server
-            game_state = GameState()
-            game_state.state = LobbyState.LOBBY
+            self._game_server.add_player(self._client_id)
             self._log.info('Lobby created')
         elif client_message.lobby_id > 0 \
                 and not client_message.create_new_lobby:  # join lobby
@@ -170,6 +173,6 @@ class Host(asyncore.dispatcher):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.info('Create host')
-    host = Host('192.168.0.108', 4321)
+    host = Host('127.0.0.1', 4321)
     # host.start()
     asyncore.loop()
