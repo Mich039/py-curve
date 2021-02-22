@@ -23,3 +23,7 @@ PLAYER_COLORS = {
     6: (200, 30, 99),
     7: (223, 200, 70)
 }
+# Minimum Tick Visible until hole in player
+MIN_TICKS_VISIBLE = 100
+# Maximum Tick Visible until hole in player
+MAX_TICKS_VISIBLE = 500

@@ -1,8 +1,11 @@
 import math
+import random
+from typing import List
 
 import GameObjects.Player as Player
 from GameObjects.Point import Point
 from GameServer.CollisionDetectionHelper import check_collision, is_relevant
+from GameServer.GameServerWrappers.ListSegment import ListSegment
 from GameServer.GameServerWrappers.PlayerInputWrapper import PlayerInputWrapper
 import GameServer.ServerConstants as ServerConstants
 
@@ -12,9 +15,13 @@ class PlayerWrapper:
     def __init__(self, player: Player):
         self._player: Player = player
         self._invisible_ticks: int = 0
-        self._visible_ticks: int = 1000
-        # self._is_alive: bool = False
+        self._visible_ticks: int = PlayerWrapper._random_time_visible()
         self._velocity: float = ServerConstants.BASE_SPEED
+        self._body: List[ListSegment] = [ListSegment(), ]
+
+    def get_wrapped_player(self) -> Player:
+        self._player.body = [segment.list for segment in self._body]
+        return self._player
 
     @property
     def player(self) -> Player:
@@ -23,6 +30,10 @@ class PlayerWrapper:
     @player.setter
     def player(self, value: Player):
         self._player = value
+
+    @property
+    def body(self) -> List[ListSegment]:
+        return self._body
 
     @property
     def invisible_ticks(self) -> int:
@@ -39,14 +50,6 @@ class PlayerWrapper:
     @visible_ticks.setter
     def visible_ticks(self, value: int):
         self._visible_ticks = value
-
-    # @property
-    # def is_alive(self) -> bool:
-    #     return self._is_alive
-    #
-    # @is_alive.setter
-    # def is_alive(self, value: bool):
-    #     self._is_alive = value
 
     @property
     def velocity(self) -> float:
@@ -73,11 +76,11 @@ class PlayerWrapper:
     def _check_player_collision(self, game_state) -> bool:
         # Loop over all segments in all other players
         for player in game_state.player_list.values():
-            for segment in player.player.body:
+            for segment in [segment for segment in player.body if segment.point_in_segment(self.player.head)]:
                 count = 0
                 starting_point = None
                 last_point = None
-                for point in segment:
+                for point in segment.list:
                     count = count + 1
                     if not is_relevant(self.player.head, point):
                         continue
@@ -105,6 +108,10 @@ class PlayerWrapper:
     def _check_for_wall_collision(self, game_state) -> bool:
         return not (self._player.head.x >= ServerConstants.PLAY_AREA_SIZE or self._player.head.x <= 0 or self._player.head.y >= ServerConstants.PLAY_AREA_SIZE or self._player.head.y <= 0)
 
+    @staticmethod
+    def _random_time_visible() -> int:
+        return math.trunc(random.uniform(ServerConstants.MIN_TICKS_VISIBLE, ServerConstants.MAX_TICKS_VISIBLE))
+
     def move(self, input: PlayerInputWrapper, game_state) -> bool:
         if input.left:
             self.rotate_by(-ServerConstants.ROTATION_SPEED)
@@ -117,8 +124,8 @@ class PlayerWrapper:
 
         if self._invisible_ticks > 0:
             self._invisible_ticks -= 1
-            if self._invisible_ticks == 0:
-                self._visible_ticks = 1000  # TODO: Add randomness
+            if self._invisible_ticks <= 0:
+                self._visible_ticks = PlayerWrapper._random_time_visible()
         else:
 
             if not self._check_player_collision(game_state):
@@ -126,14 +133,13 @@ class PlayerWrapper:
             if not self._check_for_wall_collision(game_state):
                 return False
 
-            self.player.body[len(self.player.body) - 1] \
-                .append(Point(self.player.head.x, self.player.head.y))
+            self._body[len(self._body) - 1].add_point(Point(self.player.head.x, self.player.head.y))
 
             if self._visible_ticks > 0:
                 self._visible_ticks -= 1
-                if self._visible_ticks == 0:
+                if self._visible_ticks <= 0:
                     # Now this player is invisible
-                    self._player.body.append(list())
+                    self._body.append(ListSegment())
                     self._invisible_ticks = ServerConstants.HOLE_DURATION
 
         return True
