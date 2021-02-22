@@ -59,7 +59,7 @@ class GameStateWrapper:
 
     def to_game_state(self) -> GameState:
         game_state = GameState()
-        game_state.player_list = [v.player for k, v in self._player_list.items()]
+        game_state.player_list = [v.get_wrapped_player() for k, v in self._player_list.items()]
         game_state.state = self._state
         game_state.game_server_id = self._game_server_id
         game_state.ground_power_up = self._ground_power_up

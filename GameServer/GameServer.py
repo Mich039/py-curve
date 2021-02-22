@@ -97,7 +97,6 @@ class GameServer:
             self._broadcast(self.id, self._gameState.to_game_state())
 
     def _tick(self):
-        print("ticking...")
         if not self._canceled:
             start_time = time.time()
             next_start_time = start_time + 1 / ServerConstants.TICK_RATE
@@ -109,14 +108,13 @@ class GameServer:
             self._in_game_tick()
             time_taken = (time.time() * 1000 - start_time * 1000)
             print("Time taken: {time:.10f} ms {time_perc}%".format(time=time_taken,
-                                                                   time_perc=time_taken / time_available))
+                                                                   time_perc=time_taken / time_available*100))
         elif self._gameState.state == LobbyState.BETWEEN_GAMES:
             self._between_game_tick()
         else:
             self._lobby_tick()
 
         self._inputs_processed()
-
 
     @staticmethod
     def _get_random_angle() -> float:
@@ -151,13 +149,14 @@ class GameServer:
                 player.player.score.score_points += ServerConstants.DEATH_SCORE
 
     def _in_game_tick(self):
+        move_start_time = time.time() * 1000
         for player_id, player in self._gameState.player_list.items():
             if player.player.player_status == PlayerStatus.ALIVE:
                 if not player.move(self._inputs[player_id], game_state=self._gameState):
                     player.player.player_status = PlayerStatus.DEAD
                     player.player.score.deaths += 1
                     self._calculate_score()
-
+        print("Move took {t} ms".format(t=(time.time()*1000)-move_start_time))
         self._broadcast_state()
 
     def _handle_ready_inputs(self) -> Tuple[bool, bool]:

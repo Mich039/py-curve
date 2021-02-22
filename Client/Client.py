@@ -5,7 +5,7 @@ from GameObjects import GameState, PlayerStatus
 from GameObjects.LobbyState import LobbyState
 from Socket.client import Client
 
-IP = "192.168.100.11"
+IP = "127.0.0.1"
 PORT = 4321
 WIDTH = 1000
 HEIGHT = 1000
