@@ -163,15 +163,14 @@ class GameServer:
                 player.player.score.score_points += ServerConstants.DEATH_SCORE
 
     def _in_game_tick(self):
+        move_start_time = time.time() * 1000
         for player_id, player in self._gameState.player_list.items():
             if player.player.player_status == PlayerStatus.ALIVE:
                 if not player.move(self._inputs[player_id], game_state=self._gameState):
                     player.player.player_status = PlayerStatus.DEAD
                     player.player.score.deaths += 1
                     self._calculate_score()
-                    if not self._players_alive():
-                        self._init_between_games()
-
+        print("Move took {t} ms".format(t=(time.time()*1000)-move_start_time))
         self._broadcast_state()
 
     def _handle_ready_inputs(self) -> Tuple[bool, bool]:
