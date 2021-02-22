@@ -29,6 +29,7 @@ class GameServer:
         self._inputs: Dict[str, PlayerInputWrapper] = dict()
         self._scheduler: sched.scheduler = sched.scheduler(time.time, time.sleep)
         self._canceled: bool = False
+        self._player_colors = {ServerConstants.PLAYER_COLORS[k]: None for k in range(8)}
         self._log.info("Created")
 
     def start(self):
@@ -57,6 +58,7 @@ class GameServer:
         self._log.info("Add player with id {0}".format(id))
         new_payer = PlayerWrapper(Player(id))
         new_payer.player.player_status = self._get_current_default_player_status()
+        new_payer.player.color = self._get_player_color(id)
         self._gameState.player_list[id] = new_payer
         self._broadcast_state()
 
@@ -75,8 +77,17 @@ class GameServer:
         else:
             return PlayerStatus.NOT_READY
 
+    def _get_player_color(self, player_id: str):
+        for k, v in self._player_colors.items():
+            print(k, v)
+            if self._player_colors[k] is None:
+                print("free color found")
+                self._player_colors[k] = player_id
+                print("returning color")
+                return k
+
     def _init_between_games(self):
-        self._gameState = LobbyState.BETWEEN_GAMES
+        self._gameState.state = LobbyState.BETWEEN_GAMES
         for player in [player for player in self._gameState.player_list.values() if
                        not player.player.player_status == PlayerStatus.SPECTATING]:
             player.player.player_status = PlayerStatus.NOT_READY
@@ -97,7 +108,7 @@ class GameServer:
             self._broadcast(self.id, self._gameState.to_game_state())
 
     def _tick(self):
-        print("ticking...")
+        #print("ticking...")
         if not self._canceled:
             start_time = time.time()
             next_start_time = start_time + 1 / ServerConstants.TICK_RATE
@@ -139,6 +150,7 @@ class GameServer:
 
         elif handle_result[0]:
             self._broadcast_state()
+        #self._broadcast_state()
 
     def _players_alive(self) -> bool:
         """ Checks if more than one player is alive. True if so False if not """
@@ -157,6 +169,8 @@ class GameServer:
                     player.player.player_status = PlayerStatus.DEAD
                     player.player.score.deaths += 1
                     self._calculate_score()
+                    if not self._players_alive():
+                        self._init_between_games()
 
         self._broadcast_state()
 
