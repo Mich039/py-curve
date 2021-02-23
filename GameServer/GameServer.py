@@ -1,9 +1,10 @@
 import sched
 import time
 import random
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 import logging
 
+from GameObjects.Color import Color
 from GameObjects.LobbyState import LobbyState
 from GameObjects.Player import Player
 from GameObjects.Input.PlayerInput import PlayerInput
@@ -20,13 +21,14 @@ class GameServer:
     def __init__(self, id: int):
         self._log = logging.getLogger('GameServer {0}'.format(id))
         self._id = id
+        self._new_server: bool = True
         self._gameState: GameStateWrapper = GameStateWrapper(id)
         self._broadcast = None
         self._remove_game_server = None
         self._inputs: Dict[str, PlayerInputWrapper] = dict()
         self._scheduler: sched.scheduler = sched.scheduler(time.time, time.sleep)
         self._canceled: bool = False
-        self._player_colors = {ServerConstants.PLAYER_COLORS[k]: None for k in range(8)}
+        self._player_colors = {ServerConstants.PLAYER_COLORS[k]: None for k in range(len(ServerConstants.PLAYER_COLORS))}
         self._log.info("Created")
 
     def start(self):
@@ -65,6 +67,7 @@ class GameServer:
         new_payer.player.player_status = self._get_current_default_player_status()
         new_payer.player.color = self._get_player_color(id)
         self._gameState.player_list[id] = new_payer
+        self._new_server = False
         self._broadcast_state()
 
     def receive_player_input(self, id: str, player_input: PlayerInput):
@@ -123,8 +126,10 @@ class GameServer:
             self._broadcast(self.id, self._gameState.to_game_state())
 
     def _tick(self):
-        #print("ticking...")
-        if not self._canceled:
+        # Check if there are any players in that Lobby
+        self._canceled = len(self._gameState.player_list) == 0
+
+        if not self._canceled or self._new_server:
             start_time = time.time()
             next_start_time = start_time + 1 / ServerConstants.TICK_RATE
             time_available = next_start_time*1000 - start_time*1000
@@ -156,19 +161,57 @@ class GameServer:
             input.processed = True
 
     def _lobby_tick(self):
+        change: bool = False
         handle_result = self._handle_ready_inputs()
+        change = handle_result[0]
+
+        change = change or self._handle_color_inputs()
+
+        change = change or self._remove_players()
 
         if handle_result[1]:
             self._init_new_game()
             self._gameState.state = LobbyState.IN_GAME
 
-        elif handle_result[0] or self._remove_players():
+        elif change:
             self._broadcast_state()
 
     def _players_alive(self) -> bool:
         """ Checks if more than one player is alive. True if so False if not """
         return len([player for player in self._gameState.player_list.values() if
                     player.player.player_status == PlayerStatus.ALIVE]) > 1
+
+    def _next_player_color(self, player_id: str, reverse=False):
+        """
+        Changes the color of the player specified by the player id to the next available color or Spectator.
+        The reverse Flag specifies the direction to loop.
+        """
+        # Get the current color of the player in question
+        old_color: Optional[Color] = self._gameState.player_list[player_id].player.color
+        # Reset the player color dictionary so that the index matches in the available_color_list
+        if old_color is not None:
+            self._player_colors[old_color] = None
+
+        # Create a list that also contains None (Spectator)
+        available_color_list = [None, *(color for color, player in self._player_colors.items() if player is None)]
+
+        # Get the index of the current color
+        if old_color is not None:
+            color_index = available_color_list.index(old_color)
+        else:
+            # None is the always on index 0
+            color_index = 0
+
+        # Look at the next available neighbor. This loops that no error can occur
+        offset = 1 if not reverse else -1
+        new_color = available_color_list[(color_index + offset) % len(available_color_list)]
+
+        # When the player has an actual color set it in the player color dict so the color is occupied
+        if new_color is not None:
+            self._player_colors[new_color] = player_id
+
+        # Set the color in the player to send to the client
+        self._gameState.player_list[player_id].player.color = new_color
 
     def _calculate_score(self):
         for player_id, player in self._gameState.player_list.items():
@@ -210,6 +253,18 @@ class GameServer:
         for player_id, player in self._gameState.player_list.items():
             all_ready = all_ready and not player.player.player_status == PlayerStatus.NOT_READY
         return change, all_ready
+
+    def _handle_color_inputs(self) -> bool:
+        change: bool = False
+        for key, value in [item for item in self._inputs.items() if not item[1].processed]:
+            if value.right:
+                self._next_player_color(key)
+                change = True
+            if value.left:
+                self._next_player_color(key, reverse=True)
+                change = True
+
+        return change
 
     def _between_game_tick(self):
         handle_result = self._handle_ready_inputs()

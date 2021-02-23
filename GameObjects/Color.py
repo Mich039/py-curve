@@ -1,9 +1,9 @@
 class Color:
 
-    def __init__(self):
-        self._red = 0
-        self._green = 0
-        self._blue = 0
+    def __init__(self, red=0, green=0, blue=0):
+        self._red = red
+        self._green = green
+        self._blue = blue
 
     @property
     def red(self) -> int:
@@ -28,3 +28,11 @@ class Color:
     @blue.setter
     def blue(self, value: int):
         self._blue = value
+
+    def __hash__(self) -> int:
+        return hash((self._red, self._green, self._blue))
+
+    def __eq__(self, o) -> bool:
+        return self._red == o._red and self._green == o._green and self._blue == o._blue
+
+

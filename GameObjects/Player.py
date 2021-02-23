@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from GameObjects.Color import Color
 from GameObjects.PlayerStatus import PlayerStatus
 from GameObjects.Point import Point
@@ -13,7 +13,7 @@ class Player:
         self._name = None
         self._player_status = None
         self._angle: float = None
-        self._color = None
+        self._color: Optional[Color] = None
         self._head = None
         self._body = None
         self._active_power_ups = None
@@ -56,11 +56,11 @@ class Player:
         self._angle = value
 
     @property
-    def color(self) -> Color:
+    def color(self) -> Optional[Color]:
         return self._color
 
     @color.setter
-    def color(self, value: Color):
+    def color(self, value: Optional[Color]):
         self._color = value
 
     @property
