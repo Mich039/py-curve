@@ -22,6 +22,7 @@ class GameServer:
         self._id = id
         self._gameState: GameStateWrapper = GameStateWrapper(id)
         self._broadcast = None
+        self._remove_game_server = None
         self._inputs: Dict[str, PlayerInputWrapper] = dict()
         self._scheduler: sched.scheduler = sched.scheduler(time.time, time.sleep)
         self._canceled: bool = False
@@ -33,6 +34,14 @@ class GameServer:
         self._gameState.state = LobbyState.LOBBY
         self._scheduler.enter(delay=0, priority=0, action=self._tick)
         self._scheduler.run(blocking=True)
+
+    @property
+    def remove_game_server(self):
+        return self._remove_game_server
+
+    @remove_game_server.setter
+    def remove_game_server(self, value):
+        self._remove_game_server = value
 
     @property
     def id(self):
