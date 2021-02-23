@@ -35,6 +35,7 @@ class GameClient:
         self._player_id: str = None
         self._window = pg.display.set_mode((WIDTH, HEIGHT))
         self._force_wait = False
+        self._last_input = None
 
     def init_client(self, ip=IP, port=PORT, name="User"):
         self._client = Client(ip, port, name)
@@ -132,7 +133,9 @@ class GameClient:
                     input.left = True
                 elif event.key == pg.K_RIGHT:
                     input.right = True
-            self._client.say(input)
+            if not self._last_input or self._last_input != input:
+                self._client.say(input)
+            self._last_input = input
 
 
     def _render_lobby_state(self):
