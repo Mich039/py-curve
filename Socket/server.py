@@ -31,7 +31,7 @@ def create_game_server():
 class RemoteClient(asyncore.dispatcher):
     """Wraps a remote client socket."""
 
-    def __init__(self, host, socket, address, server_broadcast):
+    def __init__(self, host, socket, address, server_broadcast, remove_game_server):
         asyncore.dispatcher.__init__(self, socket)
         self._log = logging.getLogger('RemoteClient {0}'.format(address))
         to_hash = address[0] + str(address[1])
@@ -41,6 +41,7 @@ class RemoteClient(asyncore.dispatcher):
         self._outbox = collections.deque()
         self._game_server = None
         self._server_broadcast = server_broadcast
+        self._remove_game_server = remove_game_server
 
     def handle_read(self):
         self._log.info('Read')
@@ -68,9 +69,10 @@ class RemoteClient(asyncore.dispatcher):
             # GameServer has to be started
             thread = threading.Thread(target=game_server.start)
             thread.start()
-            #game_server.start()
+            # game_server.start()
             self._log.info('GameServer created with id {0}'.format(game_server.id))
             game_server.broadcast = self._server_broadcast
+            game_server.remove_game_server = self._remove_game_server
             _game_servers[game_server] = [self]
             self._game_server = game_server
             self._game_server.add_player(self._client_id)
@@ -84,7 +86,7 @@ class RemoteClient(asyncore.dispatcher):
                 self._log.error('No GamerServer found for joining. Id: {0}'.format(client_message.lobby_id))
                 return  # TODO: maybe send an error back
             self._game_server = game_server
-            _game_servers[game_server].append(self) #changed by Sebastian: list needs append
+            _game_servers[game_server].append(self)  # changed by Sebastian: list needs append
             self._game_server.add_player(self._client_id)
             self._log.info('Add Player to Lobby')
         elif client_message.leave_lobby:  # leave lobby
@@ -133,7 +135,7 @@ class Host(asyncore.dispatcher):
         self.listen(1)
         self.remote_clients = []
 
-    def start(self, blocking = False):
+    def start(self, blocking=False):
         """
                 For use when an asyncore.loop is not already running.
                 Starts a threaded loop.
@@ -168,6 +170,12 @@ class Host(asyncore.dispatcher):
         if game_server is not None:
             for remote_client in _game_servers[game_server]:
                 remote_client.say(message)
+
+    def remove_game_server(self, game_server_id: int):
+        try:
+            _game_servers.pop(game_server_id)
+        except:
+            pass  # ignore
 
 
 if __name__ == '__main__':
