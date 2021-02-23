@@ -143,3 +143,6 @@ class PlayerWrapper:
                     self._invisible_ticks = ServerConstants.HOLE_DURATION
 
         return True
+
+    def clear_body(self):
+        self._body = [ListSegment(), ]

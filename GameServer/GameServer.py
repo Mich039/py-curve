@@ -2,12 +2,8 @@ import sched
 import time
 import random
 from typing import Dict, Tuple
-import math
-import threading
-from datetime import datetime
 import logging
 
-from GameObjects.Input.PlayerInput import PlayerInput
 from GameObjects.LobbyState import LobbyState
 from GameObjects.Player import Player
 from GameObjects.Input.PlayerInput import PlayerInput
@@ -80,11 +76,20 @@ class GameServer:
     def _get_player_color(self, player_id: str):
         for k, v in self._player_colors.items():
             print(k, v)
-            if self._player_colors[k] is None:
+            if v is None:
                 print("free color found")
                 self._player_colors[k] = player_id
                 print("returning color")
                 return k
+
+    def _remove_players(self) -> bool:
+        """Removes all players contained in the to_remove list and returns if at least one player has been removed"""
+        change: bool = False
+        for player_id in self._gameState.to_remove:
+            change = self._gameState.player_list.pop(player_id, None) is not None or change
+            self._log.info("Removed Player '{id}' from game state".format(id=player_id))
+        self._gameState.to_remove.clear()
+        return change
 
     def _init_between_games(self):
         self._gameState.state = LobbyState.BETWEEN_GAMES
@@ -96,6 +101,7 @@ class GameServer:
         for player in [player for player in self._gameState.player_list.values() if
                        not player.player.player_status == PlayerStatus.SPECTATING]:
             player.player.player_status = PlayerStatus.ALIVE
+            player.clear_body()
             player.init_position(GameServer._get_random_point(), GameServer._get_random_angle())
 
     def _init_new_game(self):
@@ -119,15 +125,13 @@ class GameServer:
         if self._gameState.state == LobbyState.IN_GAME:
             self._in_game_tick()
             time_taken = (time.time() * 1000 - start_time * 1000)
-            print("Time taken: {time:.10f} ms {time_perc}%".format(time=time_taken,
-                                                                   time_perc=time_taken / time_available))
+            #  print("Time taken: {time:.10f} ms {time_perc}%".format(time=time_taken, time_perc=time_taken / time_available))
         elif self._gameState.state == LobbyState.BETWEEN_GAMES:
             self._between_game_tick()
         else:
             self._lobby_tick()
 
         self._inputs_processed()
-
 
     @staticmethod
     def _get_random_angle() -> float:
@@ -144,13 +148,13 @@ class GameServer:
 
     def _lobby_tick(self):
         handle_result = self._handle_ready_inputs()
+
         if handle_result[1]:
             self._init_new_game()
             self._gameState.state = LobbyState.IN_GAME
 
-        elif handle_result[0]:
+        elif handle_result[0] or self._remove_players():
             self._broadcast_state()
-        #self._broadcast_state()
 
     def _players_alive(self) -> bool:
         """ Checks if more than one player is alive. True if so False if not """
@@ -170,7 +174,9 @@ class GameServer:
                     player.player.player_status = PlayerStatus.DEAD
                     player.player.score.deaths += 1
                     self._calculate_score()
-        print("Move took {t} ms".format(t=(time.time()*1000)-move_start_time))
+                    if not self._players_alive():
+                        self._init_between_games()
+        #  print("Move took {t} ms".format(t=(time.time()*1000)-move_start_time))
         self._broadcast_state()
 
     def _handle_ready_inputs(self) -> Tuple[bool, bool]:
@@ -198,9 +204,10 @@ class GameServer:
 
     def _between_game_tick(self):
         handle_result = self._handle_ready_inputs()
+
         if handle_result[1]:
             self._init_new_round()
             self._gameState.state = LobbyState.IN_GAME
 
-        elif handle_result[0]:
+        elif handle_result[0] or self._remove_players():
             self._broadcast_state()
