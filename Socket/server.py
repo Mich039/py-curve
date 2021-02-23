@@ -44,6 +44,11 @@ class RemoteClient(asyncore.dispatcher):
         self._remove_game_server = remove_game_server
 
     def handle_read(self):
+        """
+        Handle the reading from the socket stream.
+        Check the type of the received object and choose further actions.
+        :return:
+        """
         self._log.info('Read')
         received_message = self.recv(MAX_MESSAGE_LENGTH)
         if len(received_message) > 0:
@@ -62,6 +67,14 @@ class RemoteClient(asyncore.dispatcher):
             self._log.info('received invalid input from client: Type {0}'.format(type(client_message)))
 
     def handle_lobby_input(self, client_message: PlayerLobbyInput):
+        """
+        Creates, join or leave a lobby.
+        On create, a new GameServer is created and the player joins it.
+        On join, the player joins an existing GameServer by Id.
+        On remove, removes the player from an existing GameServer.
+        :param client_message:
+        :return:
+        """
         global _game_servers
         if client_message.create_new_lobby:  # create new lobby
             self._log.info('creating lobby ...')
@@ -97,15 +110,31 @@ class RemoteClient(asyncore.dispatcher):
             self._log.error('Received invalid PlayerLobbyInput')
 
     def handle_player_input(self, client_message: PlayerInput):
+        """
+        Redirect the player input to the GameServer
+        :param client_message:
+        :return:
+        """
         if self._game_server is None:
             self._log.error('Game Server is empty')
             return  # TODO: maybe exception
         self._game_server.receive_player_input(self._client_id, client_message)
 
     def say(self, message):
+        """
+        Say a object to the socket client.
+        The object will be converted to a byte array.
+        :param message: A simple object
+        :return:
+        """
         self._outbox.append(pickle.dumps(message))
 
     def handle_write(self):
+        """
+        Handles the sending of messages to the socket client.
+        This method will be periodically called.
+        :return:
+        """
         if not self._outbox:
             return
         message = self._outbox.popleft()
@@ -152,8 +181,7 @@ class Host(asyncore.dispatcher):
     def handle_accept(self):
         s, addr = self.accept()  # For the remote client.
         self.log.info('Accepted client at %s', addr)
-        self.remote_clients.append(RemoteClient(self, s, addr, self.broadcast_game_server))
-        # TODO: send lobbies to client
+        self.remote_clients.append(RemoteClient(self, s, addr, self.broadcast_game_server, self.remove_game_server))
 
     def handle_read(self):
         self.log.info('Received message: %s', self.read(MAX_MESSAGE_LENGTH))
