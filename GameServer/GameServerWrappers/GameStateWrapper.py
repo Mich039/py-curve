@@ -7,12 +7,12 @@ from GameServer.GameServerWrappers.PlayerWrapper import PlayerWrapper
 
 class GameStateWrapper:
 
-    def __init__(self):
+    def __init__(self, id):
         self._player_list: Dict[str, PlayerWrapper] = dict()
         self._to_remove: List[str] = []
         self._ground_power_up = None
         self._state: LobbyState = LobbyState.LOBBY
-        self._game_server_id = None
+        self._game_server_id = id
 
     @property
     def game_server_id(self):

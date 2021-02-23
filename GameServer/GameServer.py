@@ -20,7 +20,7 @@ class GameServer:
     def __init__(self, id: int):
         self._log = logging.getLogger('GameServer {0}'.format(id))
         self._id = id
-        self._gameState: GameStateWrapper = GameStateWrapper()
+        self._gameState: GameStateWrapper = GameStateWrapper(id)
         self._broadcast = None
         self._inputs: Dict[str, PlayerInputWrapper] = dict()
         self._scheduler: sched.scheduler = sched.scheduler(time.time, time.sleep)
