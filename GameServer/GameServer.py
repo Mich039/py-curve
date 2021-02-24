@@ -112,9 +112,13 @@ class GameServer:
             player.player.player_status = PlayerStatus.NOT_READY
 
     def _init_new_round(self):
+        # Remove all the power ups
+        self._gameState.ground_power_up.clear()
+
         for player in [player for player in self._gameState.player_list.values() if
                        not player.player.player_status == PlayerStatus.SPECTATING]:
             player.player.player_status = PlayerStatus.ALIVE
+            player.player.active_power_ups.clear()
             player.clear_body()
             player.init_position(GameServer._get_random_point(), GameServer._get_random_angle())
 

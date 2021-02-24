@@ -16,7 +16,7 @@ class Player:
         self._color: Optional[Color] = None
         self._head = None
         self._body = None
-        self._active_power_ups = None
+        self._active_power_ups = []
         self._score = Score()
 
     def __hash__(self) -> int:

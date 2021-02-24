@@ -10,7 +10,7 @@ class GameState:
     def __init__(self):
         self._player_list: List[Player] = []
         self._to_remove: List[int] = []
-        self._ground_power_up = None
+        self._ground_power_up: List[PowerUp] = []
         self._state: LobbyState = LobbyState.LOBBY
         self._game_server_id = None
 

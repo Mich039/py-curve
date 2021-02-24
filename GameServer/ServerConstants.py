@@ -5,7 +5,7 @@ TICK_RATE = 20.0
 # Base Speed as Distance per Tick
 BASE_SPEED = 4.0
 # Rotation Speed as Degrees per Tick
-ROTATION_SPEED = 2.0
+ROTATION_SPEED = 5.0
 # The length of a hole in ticks
 HOLE_DURATION = 10.0
 # The distance to check for collision
@@ -29,3 +29,5 @@ MIN_TICKS_VISIBLE = 100
 MAX_TICKS_VISIBLE = 500
 # Probability that a power up will spawn in a tick. The Range is 0 to 100%
 POWER_UP_CHANCE = 0.8
+# Player Width
+PLAYER_WIDTH_RADIUS = 3.0

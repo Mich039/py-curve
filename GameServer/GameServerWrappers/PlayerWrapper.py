@@ -100,7 +100,14 @@ class PlayerWrapper:
                                 # This should not cause a collision.
                                 if previous_point == point:
                                     continue
-                            if check_collision(self.player.head, previous_point, last_point, point):
+                            # Calculate the normal vector to check the collision of a plus shape
+                            first_perpendicular_vec = Point(-(self.player.head.y-previous_point.y),(self.player.head.x-previous_point.x))
+                            factor = 1/ math.sqrt(first_perpendicular_vec.x**2 + first_perpendicular_vec.y**2)
+                            first_point = Point(self.player.head.x+factor*ServerConstants.PLAYER_WIDTH_RADIUS*first_perpendicular_vec.x,
+                                                self.player.head.y + factor * ServerConstants.PLAYER_WIDTH_RADIUS * first_perpendicular_vec.y)
+                            second_point = Point(self.player.head.x + factor * -ServerConstants.PLAYER_WIDTH_RADIUS * first_perpendicular_vec.x,
+                                        self.player.head.y + factor * -ServerConstants.PLAYER_WIDTH_RADIUS * first_perpendicular_vec.y)
+                            if check_collision(first_point, second_point, last_point, point) or check_collision(self.player.head, previous_point, last_point, point):
                                 return False
                     last_point = point
         return True
