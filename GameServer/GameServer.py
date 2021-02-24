@@ -185,7 +185,9 @@ class GameServer:
 
     def _tick(self):
         """
-        TODO: keine ahnung was genau die macht
+        This Method is called everytime the scheduler calls.
+        If the lobby is still active (Has players) it will refresh the scheduler tick and call the current tick function
+        according to the game state. Additionally it also sets the inputs to processed.
         :return:
         """
         # Check if there are any players in that Lobby
