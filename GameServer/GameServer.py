@@ -34,6 +34,10 @@ class GameServer:
         self._log.info("Created")
 
     def start(self):
+        """
+        Start a schedule to loop in a interval through the server logic.
+        :return:
+        """
         self._log.info("Server with id {id} has started".format(id=self.id))
         self._gameState.state = LobbyState.LOBBY
         self._scheduler.enter(delay=0, priority=0, action=self._tick)
@@ -64,6 +68,13 @@ class GameServer:
         self._broadcast = value
 
     def add_player(self, id: str, username: str):
+        """
+        Add a new player to the GameServer by id and username.
+        Broadcast the changes (Lobby) to all players.
+        :param id: Player id
+        :param username: Player username
+        :return:
+        """
         self._log.info("Add player with id {0}".format(id))
         new_payer = PlayerWrapper(Player(id, username))
         new_payer.player.player_status = self._get_current_default_player_status()
@@ -73,21 +84,43 @@ class GameServer:
         self._broadcast_state()
 
     def receive_player_input(self, id: str, player_input: PlayerInput):
+        """
+        Receive player input and save it under player id.
+        Player input has to be newer than the current one.
+        :param id: Player id
+        :param player_input: Player input
+        :return:
+        """
         if id not in self._inputs or self._inputs[id].timestamp < player_input.timestamp:
             self._inputs[id] = PlayerInputWrapper(player_input)
         else:
             print("Player with id: {id} sent outdated Input".format(id=id))
 
     def remove_player(self, id: str):
+        """
+        Remove a player by id.
+        The player will be removed on the next state.
+        :param id: Player id.
+        :return:
+        """
         self._gameState.remove(id)
 
     def _get_current_default_player_status(self) -> PlayerStatus:
+        """
+        Get the current PlayerStatus for the GameServer.
+        :return: PlayerStatus
+        """
         if self._gameState.state == LobbyState.IN_GAME:
             return PlayerStatus.SPECTATING
         else:
             return PlayerStatus.NOT_READY
 
     def _get_player_color(self, player_id: str):
+        """
+        Get the color of the player by id.
+        :param player_id:
+        :return:
+        """
         for k, v in self._player_colors.items():
             print(k, v)
             if v is None:
@@ -97,7 +130,10 @@ class GameServer:
                 return k
 
     def _remove_players(self) -> bool:
-        """Removes all players contained in the to_remove list and returns if at least one player has been removed"""
+        """
+        Removes all players contained in the to_remove list and returns if at least one player has been removed
+        :return:
+        """
         change: bool = False
         for player_id in self._gameState.to_remove:
             change = self._gameState.player_list.pop(player_id, None) is not None or change
@@ -106,12 +142,22 @@ class GameServer:
         return change
 
     def _init_between_games(self):
+        """
+        Set PlayerStatus to Not_Ready on all players.
+        :return:
+        """
         self._gameState.state = LobbyState.BETWEEN_GAMES
         for player in [player for player in self._gameState.player_list.values() if
                        not player.player.player_status == PlayerStatus.SPECTATING]:
             player.player.player_status = PlayerStatus.NOT_READY
 
     def _init_new_round(self):
+        """
+        Initialise new round.
+        Set PlayerStatus to ALIVE and reset the body of all players.
+        Also set the position of each player for the next round.
+        :return:
+        """
         for player in [player for player in self._gameState.player_list.values() if
                        not player.player.player_status == PlayerStatus.SPECTATING]:
             player.player.player_status = PlayerStatus.ALIVE
@@ -119,15 +165,27 @@ class GameServer:
             player.init_position(GameServer._get_random_point(), GameServer._get_random_angle())
 
     def _init_new_game(self):
+        """
+        Initialise new game and reset score.
+        :return:
+        """
         for player in self._gameState.player_list.values():
             player.reset_score()
         self._init_new_round()
 
     def _broadcast_state(self):
+        """
+        Tell the Socket server to broadcast the GameState to all players of this GameServer.
+        :return:
+        """
         if self._broadcast is not None:
             self._broadcast(self.id, self._gameState.to_game_state())
 
     def _tick(self):
+        """
+        TODO: keine ahnung was genau die macht
+        :return:
+        """
         # Check if there are any players in that Lobby
         self._canceled = len(self._gameState.player_list) == 0
 
@@ -151,14 +209,26 @@ class GameServer:
 
     @staticmethod
     def _get_random_angle() -> float:
+        """
+        Get a random angle.
+        :return:
+        """
         return random.uniform(0, 360)
 
     @staticmethod
     def _get_random_point() -> Point:
+        """
+        Get a random point in the arena.
+        :return:
+        """
         return Point(random.uniform(0, ServerConstants.PLAY_AREA_SIZE),
                      random.uniform(0, ServerConstants.PLAY_AREA_SIZE))
 
     def _inputs_processed(self):
+        """
+        Set all input form player to processed.
+        :return:
+        """
         for input in self._inputs.values():
             input.processed = True
 
@@ -269,6 +339,10 @@ class GameServer:
         return change, all_ready
 
     def _handle_color_inputs(self) -> bool:
+        """
+        TODO: keine ahnung
+        :return:
+        """
         change: bool = False
         for key, value in [item for item in self._inputs.items() if not item[1].processed]:
             if value.right:
@@ -281,6 +355,12 @@ class GameServer:
         return change
 
     def _between_game_tick(self):
+        """
+        Choose a action between games.
+        If all player are ready, set the GameSate to IN_GAME and initialise a new game.
+        If a player has to be removed or a change occurred, broadcast them to all players.
+        :return:
+        """
         handle_result = self._handle_ready_inputs()
 
         if handle_result[1]:
