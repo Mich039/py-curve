@@ -43,9 +43,9 @@ class Client(threading.Thread, asyncore.dispatcher):
 
     def run(self):
         """
-                For use when an asyncore.loop is not already running.
-                Starts a threaded loop.
-                """
+        For use when an asyncore.loop is not already running.
+        Starts a threaded loop.
+        """
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.settimeout(5)
         self.socket.setblocking(1)
@@ -53,10 +53,20 @@ class Client(threading.Thread, asyncore.dispatcher):
         asyncore.loop(map=self._thread_sockets)
 
     def say(self, message):
+        """
+        Send a message to socket server.
+        :param message: Object
+        :return:
+        """
         self.log.info("Send: {0}".format(type(message)))
         self.outbox.append(pickle.dumps(message))
 
     def handle_write(self):
+        """
+        Handles the sending of the buffer message to the socket client.
+        This method is periodically called.
+        :return:
+        """
         if not self.outbox:
             return
         message = self.outbox.popleft()
@@ -66,14 +76,13 @@ class Client(threading.Thread, asyncore.dispatcher):
         self.send(message)
 
     def handle_read(self):
+        """
+        Handles reading from the socket stream.
+        This method is only called if something can be read from the stream.
+        :return:
+        """
         data = []
-        #while True:
-            #print("b4 receive")
         packet = self.recv(MAX_MESSAGE_LENGTH)
-            #print("after receive")
-            #if not packet:
-            #    print("break")
-            #    break
         data.append(packet)
         if len(data) > 0 and len(data[0]) > 0:
             self.log.info('Received messages: %s', len(data))
