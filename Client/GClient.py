@@ -1,13 +1,13 @@
 from enum import Enum
 import pygame as pg
 
-from Client.ClientConstants import BACKGROUND_COLOR, BLUE, WHITE, RED, GREEN
+from Client import ClientConstants
 from GameObjects.Input import PlayerInput, PlayerLobbyInput
 from GameObjects import GameState, PlayerStatus
 from GameObjects.LobbyState import LobbyState
 from Socket.client import Client
 
-IP = "127.0.0.1"
+IP = "192.168.100.11"
 PORT = 4321
 WIDTH = 1000
 HEIGHT = 1000
@@ -72,7 +72,7 @@ class GameClient:
         texts = []
         font = pg.font.Font(None, 32)
 
-        self._window.fill(BACKGROUND_COLOR)
+        self._window.fill(ClientConstants.BACKGROUND_COLOR)
 
         h = font.render("--- Score ---", True, (255, 0, 0))
         hr = h.get_rect()
@@ -117,7 +117,7 @@ class GameClient:
                 self._client.say(input)
 
     def _render_game(self):
-        self._window.fill(BACKGROUND_COLOR)
+        self._window.fill(ClientConstants.BACKGROUND_COLOR)
         for player in self._game_state.player_list:
             for sublist in player.body:
                 if len(sublist) < 2:
@@ -125,6 +125,11 @@ class GameClient:
                 sublist = _points_to_tuples(sublist)
                 pg.draw.lines(self._window, player.color, points=sublist, closed=False, width=3)
             pg.draw.circle(self._window, (255, 255, 0), (player.head.x, player.head.y), 3)
+
+        if self._game_state.ground_power_up:
+            for power_up in self._game_state.ground_power_up:
+                pg.draw.circle(self._window, ClientConstants.POWER_UP_COLORS[power_up.power_up_type], power_up.location, 5)
+
 
         for event in pg.event.get():
             input = PlayerInput.PlayerInput()
@@ -139,7 +144,7 @@ class GameClient:
 
 
     def _render_lobby_state(self):
-        self._window.fill(BACKGROUND_COLOR)
+        self._window.fill(ClientConstants.BACKGROUND_COLOR)
         ready_count = len([x for x in self._game_state.player_list if x.player_status == PlayerStatus.PlayerStatus.READY])
         player_count = len(self._game_state.player_list)
 
@@ -148,7 +153,7 @@ class GameClient:
         # storing all elements for easy rendering later
         render_elements = []
 
-        text = font.render(f'Lobby ID: {self._game_state.game_server_id}', True, WHITE)
+        text = font.render(f'Lobby ID: {self._game_state.game_server_id}', True, ClientConstants.WHITE)
         text_rect = text.get_rect()
         text_rect.center = (WIDTH // 2, 150)
         render_elements.append((text, text_rect))
@@ -158,7 +163,7 @@ class GameClient:
         text_rect.center = (WIDTH // 2, HEIGHT // 2 - 100)
         render_elements.append((text, text_rect))
 
-        text = font.render(f'{ready_count} of {player_count} Players ready', True, BLUE)
+        text = font.render(f'{ready_count} of {player_count} Players ready', True, ClientConstants.BLUE)
         text_rect = text.get_rect()
         text_rect.center = (WIDTH // 2, HEIGHT // 2)
         render_elements.append((text, text_rect))
@@ -211,7 +216,7 @@ class GameClient:
         color_active = pg.Color('dodgerblue2')
 
         input_box = pg.Rect(WIDTH // 2 + 100, HEIGHT // 2 + 34, 140, 32)
-        button_text = font.render("New Lobby", True, WHITE)
+        button_text = font.render("New Lobby", True, ClientConstants.WHITE)
         button_rect = pg.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 34, 120, 32)
         button_rect.center = (WIDTH // 2 - 100, HEIGHT // 2 + 50)
 
@@ -257,7 +262,7 @@ class GameClient:
                         else:
                             text += event.unicode
 
-            self._window.fill(BACKGROUND_COLOR)
+            self._window.fill(ClientConstants.BACKGROUND_COLOR)
             # Render the current text.
             txt_surface = font.render(text, True, field_color)
             # Resize the box if the text is too long.

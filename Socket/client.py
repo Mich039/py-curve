@@ -69,7 +69,10 @@ class Client(threading.Thread, asyncore.dispatcher):
         data = []
         #while True:
             #print("b4 receive")
+            #try:
         packet = self.recv(MAX_MESSAGE_LENGTH)
+            #except:
+            #    break
             #print("after receive")
             #if not packet:
             #    print("break")

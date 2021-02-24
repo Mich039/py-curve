@@ -209,6 +209,6 @@ class Host(asyncore.dispatcher):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.info('Create host')
-    host = Host('127.0.0.1', 4321)
+    host = Host('192.168.100.11', 4321)
     # host.start()
     asyncore.loop()
