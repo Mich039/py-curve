@@ -27,3 +27,5 @@ PLAYER_COLORS = {
 MIN_TICKS_VISIBLE = 100
 # Maximum Tick Visible until hole in player
 MAX_TICKS_VISIBLE = 500
+# Probability that a power up will spawn in a tick. The Range is 0 to 100%
+POWER_UP_CHANCE = 0.8

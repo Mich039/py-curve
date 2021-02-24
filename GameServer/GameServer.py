@@ -4,6 +4,8 @@ import random
 from typing import Dict, Tuple, Optional
 import logging
 
+from GameObjects.PowerUp import PowerUp
+from GameObjects.PowerUpType import PowerUpType
 from GameObjects.Color import Color
 from GameObjects.LobbyState import LobbyState
 from GameObjects.Player import Player
@@ -138,7 +140,7 @@ class GameServer:
         # React depending on State
         if self._gameState.state == LobbyState.IN_GAME:
             self._in_game_tick()
-            time_taken = (time.time() * 1000 - start_time * 1000)
+            #  time_taken = (time.time() * 1000 - start_time * 1000)
             #  print("Time taken: {time:.10f} ms {time_perc}%".format(time=time_taken, time_perc=time_taken / time_available))
         elif self._gameState.state == LobbyState.BETWEEN_GAMES:
             self._between_game_tick()
@@ -219,7 +221,8 @@ class GameServer:
                 player.player.score.score_points += ServerConstants.DEATH_SCORE
 
     def _in_game_tick(self):
-        move_start_time = time.time() * 1000
+        #  move_start_time = time.time() * 1000
+        self._spawn_power_ups()
         for player_id, player in self._gameState.player_list.items():
             if player.player.player_status == PlayerStatus.ALIVE:
                 if not player.move(self._inputs[player_id], game_state=self._gameState):
@@ -230,6 +233,17 @@ class GameServer:
                         self._init_between_games()
         #  print("Move took {t} ms".format(t=(time.time()*1000)-move_start_time))
         self._broadcast_state()
+
+    def _spawn_power_ups(self):
+        if random.uniform(0, 100) <= ServerConstants.POWER_UP_CHANCE:
+            # Pick one of the PowerUps
+            type: PowerUpType = random.choice(list(PowerUpType))
+            # Setup the new PowerUp
+            new_power_up = PowerUp()
+            new_power_up.location = self._get_random_point()
+            new_power_up.power_up_type = type
+            # Add to game state
+            self._gameState.ground_power_up.append(new_power_up)
 
     def _handle_ready_inputs(self) -> Tuple[bool, bool]:
         """
