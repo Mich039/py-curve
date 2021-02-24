@@ -63,9 +63,9 @@ class GameServer:
     def broadcast(self, value):
         self._broadcast = value
 
-    def add_player(self, id: str):
+    def add_player(self, id: str, username: str):
         self._log.info("Add player with id {0}".format(id))
-        new_payer = PlayerWrapper(Player(id))
+        new_payer = PlayerWrapper(Player(id, username))
         new_payer.player.player_status = self._get_current_default_player_status()
         new_payer.player.color = self._get_player_color(id)
         self._gameState.player_list[id] = new_payer

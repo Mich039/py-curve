@@ -8,9 +8,9 @@ from GameObjects.Score import Score
 
 class Player:
 
-    def __init__(self, assigned_id: str):
+    def __init__(self, assigned_id: str, username: str):
         self._id: str = assigned_id
-        self._name = None
+        self._name = username
         self._player_status = None
         self._angle: float = None
         self._color: Optional[Color] = None

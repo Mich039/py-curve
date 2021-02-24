@@ -88,7 +88,7 @@ class RemoteClient(asyncore.dispatcher):
             game_server.remove_game_server = self._remove_game_server
             _game_servers[game_server] = [self]
             self._game_server = game_server
-            self._game_server.add_player(self._client_id)
+            self._game_server.add_player(self._client_id, client_message.username)
             self._log.info('Lobby created')
         elif client_message.lobby_id > 0 \
                 and not client_message.create_new_lobby:  # join lobby
@@ -100,7 +100,7 @@ class RemoteClient(asyncore.dispatcher):
                 return  # TODO: maybe send an error back
             self._game_server = game_server
             _game_servers[game_server].append(self)  # changed by Sebastian: list needs append
-            self._game_server.add_player(self._client_id)
+            self._game_server.add_player(self._client_id, client_message.username)
             self._log.info('Add Player to Lobby')
         elif client_message.leave_lobby:  # leave lobby
             self._log.info('leaving lobby ...')
@@ -209,6 +209,6 @@ class Host(asyncore.dispatcher):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.info('Create host')
-    host = Host('192.168.100.11', 4321)
+    host = Host('127.0.0.1', 4321)
     # host.start()
     asyncore.loop()

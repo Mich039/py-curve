@@ -7,7 +7,7 @@ from GameObjects import GameState, PlayerStatus
 from GameObjects.LobbyState import LobbyState
 from Socket.client import Client
 
-IP = "192.168.100.11"
+IP = "127.0.0.1"
 PORT = 4321
 WIDTH = 1000
 HEIGHT = 1000
@@ -42,17 +42,22 @@ class GameClient:
         self._client.receive_message_event = self._handle_game_state
         print("init client done")
 
-    def join(self, id: int):
+    def join(self, id: int, username: str):
+        if not username or len(username) < 1:
+            return False
+
+        self.init_client(name=username)
+
         self._force_wait = True
+        lobby = PlayerLobbyInput.PlayerLobbyInput()
+        lobby.username = username
         if id < 0:
-            lobby = PlayerLobbyInput.PlayerLobbyInput()
             lobby.create_new_lobby = True
-            self._client.say(lobby)
         else:
-            lobby = PlayerLobbyInput.PlayerLobbyInput()
             lobby.create_new_lobby = False
             lobby.lobby_id = id
-            self._client.say(lobby)
+        self._client.say(lobby)
+        return True
 
     def test(self):
         self._window.fill((30, 30, 30))
@@ -90,7 +95,7 @@ class GameClient:
                 font.set_italic(True)
             else:
                 font.set_italic(False)
-            t = font.render(f'P{count}: {player.score.score_points}', True, color)
+            t = font.render(f'{player.name}: {player.score.score_points}', True, color)
             tr = t.get_rect()
             tr.center = (WIDTH // 2, 200 + 20 * count)
             text_recs.append(tr)
@@ -123,12 +128,11 @@ class GameClient:
                 if len(sublist) < 2:
                     continue
                 sublist = _points_to_tuples(sublist)
-                pg.draw.lines(self._window, player.color, points=sublist, closed=False, width=3)
-            pg.draw.circle(self._window, (255, 255, 0), (player.head.x, player.head.y), 3)
+                pg.draw.lines(self._window, player.color, points=sublist, closed=False, width=5)
+            pg.draw.circle(self._window, (255, 255, 0), (player.head.x, player.head.y), 2.5)
 
-        if self._game_state.ground_power_up:
-            for power_up in self._game_state.ground_power_up:
-                pg.draw.circle(self._window, ClientConstants.POWER_UP_COLORS[power_up.power_up_type], power_up.location, 5)
+        for power_up in self._game_state.ground_power_up:
+            pg.draw.circle(self._window, ClientConstants.POWER_UP_COLORS[power_up.power_up_type], (power_up.location.x, power_up.location.y), ClientConstants.POWER_UP_RADIUS)
 
 
         for event in pg.event.get():
@@ -145,13 +149,14 @@ class GameClient:
 
     def _render_lobby_state(self):
         self._window.fill(ClientConstants.BACKGROUND_COLOR)
-        ready_count = len([x for x in self._game_state.player_list if x.player_status == PlayerStatus.PlayerStatus.READY])
-        player_count = len(self._game_state.player_list)
+        #ready_count = len([x for x in self._game_state.player_list if x.player_status == PlayerStatus.PlayerStatus.READY])
+        #player_count = len(self._game_state.player_list)
 
         font = pg.font.Font(None, 32)
 
         # storing all elements for easy rendering later
         render_elements = []
+
 
         text = font.render(f'Lobby ID: {self._game_state.game_server_id}', True, ClientConstants.WHITE)
         text_rect = text.get_rect()
@@ -163,27 +168,36 @@ class GameClient:
         text_rect.center = (WIDTH // 2, HEIGHT // 2 - 100)
         render_elements.append((text, text_rect))
 
-        text = font.render(f'{ready_count} of {player_count} Players ready', True, ClientConstants.BLUE)
-        text_rect = text.get_rect()
-        text_rect.center = (WIDTH // 2, HEIGHT // 2)
-        render_elements.append((text, text_rect))
+        #text = font.render(f'{ready_count} of {player_count} Players ready', True, ClientConstants.BLUE)
+        #text_rect = text.get_rect()
+        #text_rect.center = (WIDTH // 2, HEIGHT // 2)
+        #render_elements.append((text, text_rect))
 
         ready_state = False
         color = None    # None => Spectator
 
         # check whether client is ready
+        count = 0
         for player in self._game_state.player_list:
+            count += 1
             if player.id == self._player_id:
                 if player.player_status == PlayerStatus.PlayerStatus.READY:
                     ready_state = True
                 if player.color is None:
-                    color_text = font.render("You are a Spectator", True, (0, 0, 0))
+                    text = font.render("You are a Spectator", True, ClientConstants.BLACK)
                 else:
-                    color_text = font.render("You are a Player", True, player.color)
+                    text = font.render("You are a Player", True, player.color)
+            else:
+                ready_text = 'Ready' if player.player_status == PlayerStatus.PlayerStatus.READY else 'Not Ready'
+                color = player.color if player.color is not None else ClientConstants.BLACK
+                text = font.render(f'{player.name} ({ready_text})', True, color)
+                #text_rect = text.get_rect()
+                #text_rect.center = (WIDTH // 2, HEIGHT // 2 + 50 * count)
+                #render_elements.append((text, text_rect))
 
-        color_rect = color_text.get_rect()
-        color_rect.center = (WIDTH // 2, HEIGHT // 2 + 100)
-        render_elements.append((color_text, color_rect))
+            text_rect = text.get_rect()
+            text_rect.center = (WIDTH // 2, HEIGHT // 2 + 50 * count)
+            render_elements.append((text, text_rect))
 
 
         if ready_state:
@@ -215,7 +229,12 @@ class GameClient:
         color_inactive = pg.Color('lightskyblue3')
         color_active = pg.Color('dodgerblue2')
 
-        input_box = pg.Rect(WIDTH // 2 + 100, HEIGHT // 2 + 34, 140, 32)
+        lobby_box = pg.Rect(WIDTH // 2 + 100, HEIGHT // 2 + 34, 140, 32)
+        username_box = pg.Rect(WIDTH // 2, HEIGHT // 2 + 134, 140, 32)
+        username_header = font.render("Enter Username:", True, ClientConstants.WHITE)
+        username_header_box = username_header.get_rect()
+        username_header_box.center = (WIDTH // 2 - 100, HEIGHT // 2 + 150)
+
         button_text = font.render("New Lobby", True, ClientConstants.WHITE)
         button_rect = pg.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 34, 120, 32)
         button_rect.center = (WIDTH // 2 - 100, HEIGHT // 2 + 50)
@@ -225,16 +244,19 @@ class GameClient:
 
         button_color = color_inactive
 
-        field_color = color_inactive
-        active = False
-        text = ''
-        done = False
+        lobby_field_color = color_inactive
+        username_field_color = color_inactive
 
+        lobby_field_active = False
+        username_field_active = False
 
-        while not done:
+        lobby_id = ''
+        username = ''
+
+        while True:
             for event in pg.event.get():
                 if event.type == pg.QUIT:
-                    done = True
+                    return
                 if event.type == pg.MOUSEMOTION:
                     if button_rect.collidepoint(event.pos):
                         button_color = color_active
@@ -242,37 +264,65 @@ class GameClient:
                         button_color = color_inactive
                 if event.type == pg.MOUSEBUTTONDOWN:
                     # If the user clicked on the input_box rect.
-                    if input_box.collidepoint(event.pos):
+                    if lobby_box.collidepoint(event.pos):
                         # Toggle the active variable.
-                        active = not active
+                        lobby_field_active = True
+                        lobby_field_color = color_active
+                        username_field_active = False
+                        username_field_color = color_inactive
+                    elif username_box.collidepoint(event.pos):
+                        lobby_field_active = False
+                        lobby_field_color = color_inactive
+                        username_field_active = True
+                        username_field_color = color_active
                     else:
-                        active = False
+                        lobby_field_active = False
+                        username_field_active = False
+                        lobby_field_color = color_inactive
+                        username_field_color = color_inactive
                     if button_rect.collidepoint(event.pos):
-                        self.join(-1)
-                        return
-                    # Change the current color of the input box.
-                    field_color = color_active if active else color_inactive
-                if event.type == pg.KEYDOWN:
-                    if active:
-                        if event.key == pg.K_RETURN:
-                            self.join(int(text))
+                        if self.join(-1, username):
                             return
-                        elif event.key == pg.K_BACKSPACE:
-                            text = text[:-1]
                         else:
-                            text += event.unicode
+                            username_field_color = ClientConstants.RED
+
+                    # Change the current color of the input box.
+                    # lobby_field_color = color_active if lobby_field_active else color_inactive
+                    # username_field_color = color_active if username_field_active else color_inactive
+
+                if event.type == pg.KEYDOWN:
+                    if lobby_field_active:
+                        if event.key == pg.K_RETURN:
+                            if self.join(int(lobby_id), username):
+                                return
+                            else:
+                                username_field_color = ClientConstants.RED
+                        elif event.key == pg.K_BACKSPACE:
+                            lobby_id = lobby_id[:-1]
+                        else:
+                            lobby_id += event.unicode
+                    elif username_field_active:
+                        if event.key == pg.K_BACKSPACE:
+                            username = username[:-1]
+                        else:
+                            username += event.unicode
 
             self._window.fill(ClientConstants.BACKGROUND_COLOR)
             # Render the current text.
-            txt_surface = font.render(text, True, field_color)
+            lobby_surface = font.render(lobby_id, True, lobby_field_color)
+            username_surface = font.render(username, True, username_field_color)
+
             # Resize the box if the text is too long.
-            width = max(60, txt_surface.get_width()+10)
-            input_box.w = width
+            width = max(60, lobby_surface.get_width()+10)
+            lobby_box.w = width
             # Blit the text.
-            self._window.blit(txt_surface, (input_box.x+5, input_box.y+5))
+            self._window.blit(lobby_surface, (lobby_box.x+5, lobby_box.y+5))
+            self._window.blit(username_surface, (username_box.x+5, username_box.y+5))
             self._window.blit(button_text, (button_rect.x + 5, button_rect.y + 5))
+            self._window.blit(username_header, username_header_box)
             # Blit the input_box rect.
-            pg.draw.rect(self._window, field_color, input_box, 2)
+            pg.draw.rect(self._window, lobby_field_color, lobby_box, 2)
+            pg.draw.rect(self._window, username_field_color, username_box, 2)
             pg.draw.rect(self._window, button_color, button_rect, 2)
             pg.display.flip()
 
@@ -286,7 +336,6 @@ class GameClient:
             self._player_id = self._game_state.player_list[-1].id
 
     def start(self):
-        self.init_client(name="test_user")
         clock = pg.time.Clock()
         pg.init()
         while True:
