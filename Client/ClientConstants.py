@@ -15,5 +15,9 @@ POWER_UP_RADIUS = 15
 POWER_UP_COLORS = {
     PowerUpType.SLOW: (255, 50, 50),
     PowerUpType.SPEED: (50, 255, 50),
-    PowerUpType.FLYING: (50, 50, 255)
+    PowerUpType.FLYING: (50, 50, 255),
+    PowerUpType.CLEAR: (50, 50, 255),
+    PowerUpType.ENEMY_INVERSE: (50, 50, 255),
+    PowerUpType.CORNER: (50, 50, 255),
+    PowerUpType.ENEMY_CORNER: (50, 50, 255)
 }
