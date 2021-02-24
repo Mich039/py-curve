@@ -21,6 +21,10 @@ _lock = threading.Lock()
 
 
 def create_game_server():
+    """
+    Creates a new GameServer and set a id for it.
+    :return:
+    """
     with _lock:
         global _game_server_ids
         id = _game_server_ids
@@ -143,7 +147,11 @@ class RemoteClient(asyncore.dispatcher):
         self.send(message)
 
     def handle_close(self) -> None:
-        # super(RemoteClient, self).handle_close()
+        """
+        Handles the closing of the RemoteClient (socket connection).
+        Removes player if the socket is closed.
+        :return:
+        """
         self._log.info('leaving lobby ... (handle_close)')
         if self._game_server is not None:
             self._game_server.remove_player(self._client_id)
@@ -155,9 +163,7 @@ class Host(asyncore.dispatcher):
 
     def __init__(self, address, port):
         asyncore.dispatcher.__init__(self)
-
         self._thread = None
-
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
         self.bind((address, port))
@@ -166,8 +172,8 @@ class Host(asyncore.dispatcher):
 
     def start(self, blocking=False):
         """
-                For use when an asyncore.loop is not already running.
-                Starts a threaded loop.
+        For use when an asyncore.loop is not already running.
+        Starts a threaded loop.
         """
         if self._thread is not None:
             return
@@ -179,19 +185,32 @@ class Host(asyncore.dispatcher):
             self._thread.join()
 
     def handle_accept(self):
+        """
+        Handles the accepting of a new socket client.
+        Creates a RemoteClient for each new socket client.
+        :return:
+        """
         s, addr = self.accept()  # For the remote client.
         self.log.info('Accepted client at %s', addr)
         self.remote_clients.append(RemoteClient(self, s, addr, self.broadcast_game_server, self.remove_game_server))
 
-    def handle_read(self):
-        self.log.info('Received message: %s', self.read(MAX_MESSAGE_LENGTH))
-
     def broadcast(self, message):
+        """
+        Broadcast a message to all RemoteClients
+        :param message:
+        :return:
+        """
         self.log.info('Broadcasting message %s', message)
         for remote_client in self.remote_clients:
             remote_client.say(message)
 
     def broadcast_game_server(self, game_server_id: int, message):
+        """
+        Broadcast a message to all RemoteClients from a GameServer.
+        :param game_server_id:
+        :param message:
+        :return:
+        """
         self.log.info('Broadcasting message from game_server %s', message)
         keys = list(_game_servers.keys())
         game_server = next((x for x in keys if x.id == game_server_id), None)
@@ -200,6 +219,11 @@ class Host(asyncore.dispatcher):
                 remote_client.say(message)
 
     def remove_game_server(self, game_server_id: int):
+        """
+        Remove a GameServer by Id.
+        :param game_server_id:
+        :return:
+        """
         try:
             _game_servers.pop(game_server_id)
         except:
