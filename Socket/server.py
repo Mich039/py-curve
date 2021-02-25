@@ -5,6 +5,7 @@ import collections
 import logging
 import threading
 import hashlib
+import time
 
 from GameObjects.GameState import GameState
 from GameObjects.GameState import LobbyState
@@ -143,6 +144,7 @@ class RemoteClient(asyncore.dispatcher):
             return
         message = self._outbox.popleft()
         self.send(message)
+        time.sleep(0.001)
         self.send(_sentinel)
 
     def handle_close(self) -> None:

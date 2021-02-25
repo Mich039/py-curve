@@ -13,7 +13,7 @@ from GameObjects.Input.PlayerLobbyInput import PlayerLobbyInput
 
 MAX_MESSAGE_LENGTH = 1024
 
-_sentinel = b'\x00\x00END_MESSAGE!\x00\x00'[:MAX_MESSAGE_LENGTH]
+_sentinel = b'\x00\x00END_MESSAGE!\x00\x00'
 
 
 class Client(threading.Thread, asyncore.dispatcher):
@@ -50,7 +50,7 @@ class Client(threading.Thread, asyncore.dispatcher):
         """
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.settimeout(5)
-        self.socket.setblocking(0)
+        self.socket.setblocking(1)
         self.connect((self.host, self.port))
         asyncore.loop(map=self._thread_sockets)
 
@@ -72,10 +72,14 @@ class Client(threading.Thread, asyncore.dispatcher):
         if not self.outbox:
             return
         message = self.outbox.popleft()
+        #print(message)
         if len(message) > MAX_MESSAGE_LENGTH:
             self.log.error('Message too long')
             return
         self.send(message)
+
+    def writable(self):
+        return True
 
     def handle_read(self):
         """
@@ -83,15 +87,17 @@ class Client(threading.Thread, asyncore.dispatcher):
         This method is only called if something can be read from the stream.
         :return:
         """
+        #print("handle_read")
         data = None
+        blocks = []
         while True:
-            blocks = []
-            while True:
-                blocks.append(self.recv(MAX_MESSAGE_LENGTH))
-                if blocks[-1] == _sentinel:
-                    blocks.pop()
-                    break
-            data = b''.join(blocks)
+            blocks.append(self.recv(MAX_MESSAGE_LENGTH))
+            #print(blocks[-1])
+            #print(_sentinel)
+            if blocks[-1] == _sentinel:
+                #print("breaking")
+                break
+        data = pickle.loads(b''.join(blocks))
         # data = []
         # packet = self.recv(MAX_MESSAGE_LENGTH)
         # data.append(packet)
@@ -104,7 +110,7 @@ class Client(threading.Thread, asyncore.dispatcher):
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    client = Client("127.0.0.1", 4321, 'test_1')
+    client = Client("192.168.100.11", 4321, 'test_1')
     client.start()
 
     lobby = PlayerLobbyInput()
