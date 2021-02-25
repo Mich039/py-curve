@@ -7,15 +7,10 @@ from GameObjects import GameState, PlayerStatus
 from GameObjects.LobbyState import LobbyState
 from Socket.client import Client
 
-IP = "127.0.0.1"  # "gattinger.ddns.net"
+IP = "gattinger.ddns.net"
 PORT = 4321
 WIDTH = 1000
 HEIGHT = 1000
-BASE_SPEED = 1.0
-
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-
 
 pg.display.set_caption("Client")
 
@@ -50,7 +45,7 @@ class GameClient:
 
         self._force_wait = True
         lobby = PlayerLobbyInput.PlayerLobbyInput()
-        lobby.username = username
+        lobby.username = self._client.name
         if id < 0:
             lobby.create_new_lobby = True
         else:
@@ -79,7 +74,7 @@ class GameClient:
 
         self._window.fill(ClientConstants.BACKGROUND_COLOR)
 
-        h = font.render("--- Score ---", True, (255, 0, 0))
+        h = font.render("--- Score ---", True, ClientConstants.RED)
         hr = h.get_rect()
         hr.center = (WIDTH // 2, 100)
         self._window.blit(h, hr)
@@ -87,25 +82,27 @@ class GameClient:
         count = 0
         ready_state = False
         for player in self._game_state.player_list:
-            count = count + 1
-            color = player.color
-            if player.id == self._player_id:
-                if player.player_status == PlayerStatus.PlayerStatus.READY:
-                    ready_state = True
-                font.set_italic(True)
-            else:
-                font.set_italic(False)
-            t = font.render(f'{player.name}: {player.score.score_points}', True, color)
-            tr = t.get_rect()
-            tr.center = (WIDTH // 2, 200 + 20 * count)
-            text_recs.append(tr)
-            texts.append(t)
+            if player.player_status is not PlayerStatus.PlayerStatus.SPECTATING:
+                count = count + 1
+                color = player.color
+                if player.id == self._player_id:
+                    if player.player_status == PlayerStatus.PlayerStatus.READY:
+                        ready_state = True
+                    font.set_italic(True)
+                else:
+                    font.set_italic(False)
+                ready_text = "Ready" if player.player_status == PlayerStatus.PlayerStatus.READY else "Not Ready"
+                t = font.render(f'{player.name}: {player.score.score_points} ({ready_text})', True, color)
+                tr = t.get_rect()
+                tr.center = (WIDTH // 2, 200 + 30 * count)
+                text_recs.append(tr)
+                texts.append(t)
 
         font.set_italic(False)
         if ready_state:
-            t = font.render('Ready', True, GREEN)
+            t = font.render('Ready', True, ClientConstants.GREEN)
         else:
-            t = font.render('Not Ready', True, RED)
+            t = font.render('Not Ready', True, ClientConstants.RED)
         tr = t.get_rect()
         tr.center = (WIDTH // 2, HEIGHT - 50)
         text_recs.append(tr)
@@ -124,27 +121,28 @@ class GameClient:
     def _render_game(self):
         self._window.fill(ClientConstants.BACKGROUND_COLOR)
         for player in self._game_state.player_list:
-            for sublist in player.body:
-                if len(sublist) < 2:
-                    continue
-                sublist = _points_to_tuples(sublist)
-                pg.draw.lines(self._window, player.color, points=sublist, closed=False, width=5)
-            pg.draw.circle(self._window, (255, 255, 0), (player.head.x, player.head.y), 2.5)
+            if player.player_status is not PlayerStatus.PlayerStatus.SPECTATING:
+                for sublist in player.body:
+                    if len(sublist) < 2:
+                        continue
+                    sublist = _points_to_tuples(sublist)
+                    pg.draw.lines(self._window, player.color, points=sublist, closed=False, width=5)
+                pg.draw.circle(self._window, (255, 255, 0), (player.head.x, player.head.y), 2.5)
 
         for power_up in self._game_state.ground_power_up:
             pg.draw.circle(self._window, ClientConstants.POWER_UP_COLORS[power_up.power_up_type], (power_up.location.x, power_up.location.y), ClientConstants.POWER_UP_RADIUS)
 
 
         for event in pg.event.get():
-            input = PlayerInput.PlayerInput()
+            player_input = PlayerInput.PlayerInput()
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_LEFT:
-                    input.left = True
+                    player_input.left = True
                 elif event.key == pg.K_RIGHT:
-                    input.right = True
-            if not self._last_input or self._last_input != input:
-                self._client.say(input)
-            self._last_input = input
+                    player_input.right = True
+            if not self._last_input or self._last_input != player_input:
+                self._client.say(player_input)
+            self._last_input = player_input
 
 
     def _render_lobby_state(self):
@@ -163,7 +161,7 @@ class GameClient:
         text_rect.center = (WIDTH // 2, 150)
         render_elements.append((text, text_rect))
 
-        text = font.render('Waiting For Start', True, GREEN)
+        text = font.render('Waiting For Start', True, ClientConstants.GREEN)
         text_rect = text.get_rect()
         text_rect.center = (WIDTH // 2, HEIGHT // 2 - 100)
         render_elements.append((text, text_rect))
@@ -173,7 +171,7 @@ class GameClient:
         #text_rect.center = (WIDTH // 2, HEIGHT // 2)
         #render_elements.append((text, text_rect))
 
-        ready_state = False
+        own_player_state = None
         color = None    # None => Spectator
 
         # check whether client is ready
@@ -181,14 +179,19 @@ class GameClient:
         for player in self._game_state.player_list:
             count += 1
             if player.id == self._player_id:
-                if player.player_status == PlayerStatus.PlayerStatus.READY:
-                    ready_state = True
+                own_player_state = player.player_status
                 if player.color is None:
                     text = font.render("You are a Spectator", True, ClientConstants.BLACK)
                 else:
                     text = font.render("You are a Player", True, player.color)
             else:
-                ready_text = 'Ready' if player.player_status == PlayerStatus.PlayerStatus.READY else 'Not Ready'
+                ready_text = ''
+                if player.player_status == PlayerStatus.PlayerStatus.SPECTATING:
+                    ready_text = 'Spectating'
+                elif player.player_status == PlayerStatus.PlayerStatus.READY:
+                    ready_text = 'Ready'
+                else:
+                    ready_text = 'Not Ready'
                 color = player.color if player.color is not None else ClientConstants.BLACK
                 text = font.render(f'{player.name} ({ready_text})', True, color)
                 #text_rect = text.get_rect()
@@ -199,26 +202,29 @@ class GameClient:
             text_rect.center = (WIDTH // 2, HEIGHT // 2 + 50 * count)
             render_elements.append((text, text_rect))
 
-
-        if ready_state:
-            text = font.render('Ready', True, GREEN)
-        else:
-            text = font.render('Not Ready', True, (255, 0, 0))
+        if own_player_state == PlayerStatus.PlayerStatus.READY:
+            text = font.render('Ready', True, ClientConstants.GREEN)
+        elif own_player_state == PlayerStatus.PlayerStatus.NOT_READY:
+            text = font.render('Not Ready', True, ClientConstants.RED)
+        elif own_player_state == PlayerStatus.PlayerStatus.SPECTATING:
+            text = font.render('Spectating', True, ClientConstants.WHITE)
 
         text_rect = text.get_rect()
         text_rect.center = (WIDTH // 2, HEIGHT - 100)
         render_elements.append((text, text_rect))
 
         for event in pg.event.get():
+            player_input = PlayerInput.PlayerInput()
             if event.type == pg.KEYDOWN:
-                input = PlayerInput.PlayerInput()
                 if event.key == pg.K_SPACE:
-                    input.space = True
+                    player_input.space = True
                 elif event.key == pg.K_LEFT:
-                    input.left = True
+                    player_input.left = True
                 elif event.key == pg.K_RIGHT:
-                    input.right = True
-                self._client.say(input)
+                    player_input.right = True
+            if not self._last_input or self._last_input != player_input:
+                self._client.say(player_input)
+            self._last_input = player_input
 
         # rendering elements
         for element in render_elements:

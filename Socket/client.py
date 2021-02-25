@@ -32,7 +32,9 @@ class Client(threading.Thread, asyncore.dispatcher):
         self.log.info('Connecting to host at %s', host)
         self.outbox = collections.deque()
         self._receive_message_event = None
+        self._message_buffer = None
         self.start()
+
 
     @property
     def receive_message_event(self):
@@ -87,16 +89,19 @@ class Client(threading.Thread, asyncore.dispatcher):
         This method is only called if something can be read from the stream.
         :return:
         """
-        #print("handle_read")
         data = None
         blocks = []
+        if self._message_buffer:
+            blocks.append(self._message_buffer)
+        self._message_buffer = None
         while True:
             message = self.recv(MAX_MESSAGE_LENGTH)
             #print(message)
             sentinel_pos = message.find(_sentinel)
             if sentinel_pos > 0:
-                message = message[:sentinel_pos+1]
-                blocks.append(message)
+                messages = message.split(_sentinel)
+                blocks.append(messages[0])
+                self._message_buffer = messages[1]
                 #print("break")
                 break
             blocks.append(message)
