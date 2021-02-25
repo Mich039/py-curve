@@ -1,7 +1,7 @@
 # define default thickness for drawing lines (must be odd)
 from GameObjects.PowerUpType import PowerUpType
 
-IP = "192.168.100.11"
+IP = "gattinger.ddns.net"
 PORT = 4321
 
 LINE_THICKNESS = 3

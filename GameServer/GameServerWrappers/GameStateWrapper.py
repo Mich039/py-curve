@@ -59,6 +59,10 @@ class GameStateWrapper:
         self._to_remove.append(id)
 
     def to_game_state(self) -> GameState:
+        """
+        Converts the current game state wrapper into a gamestate that will be sent to the clients
+        :return: The current GameState
+        """
         game_state = GameState()
         game_state.player_list = [v.get_wrapped_player() for k, v in self._player_list.items()]
         game_state.state = self._state

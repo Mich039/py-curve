@@ -24,6 +24,12 @@ class ListSegment:
         return self._list
 
     def add_point(self, point: Point):
+        """
+        Adds a Point to the ListSegment.
+        This also updates the min and max properties of the ListSegment accordingly
+
+        :param point: The Point that will get added to the ListSegment
+        """
         if self._min.x >= point.x:
             self._min.x = int(point.x)
         if self._min.y >= point.y:
@@ -35,4 +41,10 @@ class ListSegment:
         self._list.append(point)
 
     def point_in_segment(self, point: Point) -> bool:
+        """
+        Checks if the given Point is within the boundlingbox of the ListSegment
+
+        :param point: The Point to be checked
+        :return: If the Point is within the bounding box of the ListSegment true, otherwise False.
+        """
         return self._max is not None and self._min is not None and self._min.x <= point.x <= self._max.x and self._min.y <= point.y <= self._max.y

@@ -1,5 +1,6 @@
 from GameObjects.PowerUpType import PowerUpType
 
+# The live time of a power up once it is activated. The given amount is ticks alive
 POWER_UP_TICKS = {
     PowerUpType.SLOW: 100,
     PowerUpType.SPEED: 100,
