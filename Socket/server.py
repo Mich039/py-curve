@@ -5,6 +5,7 @@ import collections
 import logging
 import threading
 import hashlib
+import time
 
 from GameObjects.GameState import GameState
 from GameObjects.GameState import LobbyState
@@ -12,13 +13,13 @@ from GameObjects.Input.PlayerInput import PlayerInput
 from GameObjects.Input.PlayerLobbyInput import PlayerLobbyInput
 from GameServer.GameServer import GameServer
 
-BUFFERSIZE = 512
 MAX_MESSAGE_LENGTH = 1024  # message length
 
 _game_servers = dict()  # {key: GameServer; value: List<RemoteClient>()}
 _game_server_ids = 1
 _lock = threading.Lock()
 
+_sentinel = b'\x00\x00END_MESSAGE!\x00\x00'[:MAX_MESSAGE_LENGTH]
 
 def create_game_server():
     """
@@ -142,9 +143,9 @@ class RemoteClient(asyncore.dispatcher):
         if not self._outbox:
             return
         message = self._outbox.popleft()
-        # if len(message) > MAX_MESSAGE_LENGTH:
-        #     raise ValueError('Message too long')
         self.send(message)
+        time.sleep(0.001)
+        self.send(_sentinel)
 
     def handle_close(self) -> None:
         """

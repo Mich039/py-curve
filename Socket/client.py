@@ -11,7 +11,9 @@ from GameObjects.GameState import GameState
 from GameObjects.Input.PlayerInput import PlayerInput
 from GameObjects.Input.PlayerLobbyInput import PlayerLobbyInput
 
-MAX_MESSAGE_LENGTH = 2000000
+MAX_MESSAGE_LENGTH = 1024
+
+_sentinel = b'\x00\x00END_MESSAGE!\x00\x00'
 
 
 class Client(threading.Thread, asyncore.dispatcher):
@@ -70,10 +72,14 @@ class Client(threading.Thread, asyncore.dispatcher):
         if not self.outbox:
             return
         message = self.outbox.popleft()
+        #print(message)
         if len(message) > MAX_MESSAGE_LENGTH:
             self.log.error('Message too long')
             return
         self.send(message)
+
+    def writable(self):
+        return True
 
     def handle_read(self):
         """
@@ -81,19 +87,30 @@ class Client(threading.Thread, asyncore.dispatcher):
         This method is only called if something can be read from the stream.
         :return:
         """
-        data = []
-        packet = self.recv(MAX_MESSAGE_LENGTH)
-        data.append(packet)
-        if len(data) > 0 and len(data[0]) > 0:
-            self.log.info('Received messages: %s', len(data))
-            message_decode = pickle.loads(b"".join(data))
-            if isinstance(message_decode, GameState) and self._receive_message_event is not None:
-                self._receive_message_event(message_decode)
+        #print("handle_read")
+        data = None
+        blocks = []
+        while True:
+            blocks.append(self.recv(MAX_MESSAGE_LENGTH))
+            #print(blocks[-1])
+            #print(_sentinel)
+            if blocks[-1] == _sentinel:
+                #print("breaking")
+                break
+        data = pickle.loads(b''.join(blocks))
+        # data = []
+        # packet = self.recv(MAX_MESSAGE_LENGTH)
+        # data.append(packet)
+        # if len(data) > 0 and len(data[0]) > 0:
+        #     self.log.info('Received messages: %s', len(data))
+        #     message_decode = pickle.loads(b"".join(data))
+        if isinstance(data, GameState) and self._receive_message_event is not None:
+            self._receive_message_event(data)
 
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    client = Client("127.0.0.1", 4321, 'test_1')
+    client = Client("192.168.100.11", 4321, 'test_1')
     client.start()
 
     lobby = PlayerLobbyInput()
