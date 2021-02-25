@@ -24,7 +24,7 @@ POWER_UP_COLORS = {
     PowerUpType.SPEED: (50, 255, 50),
     PowerUpType.FLYING: (50, 50, 255),
     PowerUpType.CLEAR: (255, 105, 180),
-    PowerUpType.ENEMY_INVERSE: (50, 50, 255),
+    PowerUpType.ENEMY_INVERSE: (150, 75, 0),
     PowerUpType.CORNER: (55, 0, 0),
-    PowerUpType.ENEMY_CORNER: (50, 50, 255)
+    PowerUpType.ENEMY_CORNER: (173, 216, 230)
 }

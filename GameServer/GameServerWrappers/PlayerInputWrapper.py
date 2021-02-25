@@ -22,7 +22,6 @@ class PlayerInputWrapper:
 
     @property
     def left(self) -> bool:
-        """Property left"""
         return self._left
 
     @left.setter
