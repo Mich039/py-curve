@@ -83,5 +83,5 @@ def main_socket_test():
 
 
 if __name__ == '__main__':
-    main_test()
-    #main_socket_test()
+    #main_test()
+    main_socket_test()

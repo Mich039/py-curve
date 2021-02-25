@@ -11,7 +11,9 @@ from GameObjects.GameState import GameState
 from GameObjects.Input.PlayerInput import PlayerInput
 from GameObjects.Input.PlayerLobbyInput import PlayerLobbyInput
 
-MAX_MESSAGE_LENGTH = 2000000
+MAX_MESSAGE_LENGTH = 1024
+
+_sentinel = b'\x00\x00END_MESSAGE!\x00\x00'[:MAX_MESSAGE_LENGTH]
 
 
 class Client(threading.Thread, asyncore.dispatcher):
@@ -48,7 +50,7 @@ class Client(threading.Thread, asyncore.dispatcher):
         """
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.settimeout(5)
-        self.socket.setblocking(1)
+        self.socket.setblocking(0)
         self.connect((self.host, self.port))
         asyncore.loop(map=self._thread_sockets)
 
@@ -81,14 +83,23 @@ class Client(threading.Thread, asyncore.dispatcher):
         This method is only called if something can be read from the stream.
         :return:
         """
-        data = []
-        packet = self.recv(MAX_MESSAGE_LENGTH)
-        data.append(packet)
-        if len(data) > 0 and len(data[0]) > 0:
-            self.log.info('Received messages: %s', len(data))
-            message_decode = pickle.loads(b"".join(data))
-            if isinstance(message_decode, GameState) and self._receive_message_event is not None:
-                self._receive_message_event(message_decode)
+        data = None
+        while True:
+            blocks = []
+            while True:
+                blocks.append(self.recv(MAX_MESSAGE_LENGTH))
+                if blocks[-1] == _sentinel:
+                    blocks.pop()
+                    break
+            data = b''.join(blocks)
+        # data = []
+        # packet = self.recv(MAX_MESSAGE_LENGTH)
+        # data.append(packet)
+        # if len(data) > 0 and len(data[0]) > 0:
+        #     self.log.info('Received messages: %s', len(data))
+        #     message_decode = pickle.loads(b"".join(data))
+        if isinstance(data, GameState) and self._receive_message_event is not None:
+            self._receive_message_event(data)
 
 
 def main():
