@@ -7,12 +7,10 @@ from GameObjects import GameState, PlayerStatus
 from GameObjects.LobbyState import LobbyState
 from Socket.client import Client
 
-IP = "gattinger.ddns.net"
-PORT = 4321
 WIDTH = 1000
 HEIGHT = 1000
 
-pg.display.set_caption("Client")
+pg.display.set_caption("CurveFever Client")
 
 
 def _points_to_tuples(points):
@@ -23,7 +21,6 @@ def _points_to_tuples(points):
 
 
 class GameClient:
-
     def __init__(self):
         self._game_state: GameState = None
         self._client: Client = None
@@ -32,7 +29,7 @@ class GameClient:
         self._force_wait = False
         self._last_input = None
 
-    def init_client(self, ip=IP, port=PORT, name="User"):
+    def init_client(self, ip=ClientConstants.IP, port=ClientConstants.PORT, name="User"):
         self._client = Client(ip, port, name)
         self._client.receive_message_event = self._handle_game_state
         print("init client done")
@@ -80,17 +77,16 @@ class GameClient:
         self._window.blit(h, hr)
 
         count = 0
-        ready_state = False
+        ready_state = None
         for player in self._game_state.player_list:
+            if player.id == self._player_id:
+                ready_state = player.player_status
+                font.set_italic(True)
+            else:
+                font.set_italic(False)
             if player.player_status is not PlayerStatus.PlayerStatus.SPECTATING:
                 count = count + 1
                 color = player.color
-                if player.id == self._player_id:
-                    if player.player_status == PlayerStatus.PlayerStatus.READY:
-                        ready_state = True
-                    font.set_italic(True)
-                else:
-                    font.set_italic(False)
                 ready_text = "Ready" if player.player_status == PlayerStatus.PlayerStatus.READY else "Not Ready"
                 t = font.render(f'{player.name}: {player.score.score_points} ({ready_text})', True, color)
                 tr = t.get_rect()
@@ -99,10 +95,12 @@ class GameClient:
                 texts.append(t)
 
         font.set_italic(False)
-        if ready_state:
+        if ready_state == PlayerStatus.PlayerStatus.READY:
             t = font.render('Ready', True, ClientConstants.GREEN)
-        else:
+        elif ready_state == PlayerStatus.PlayerStatus.NOT_READY:
             t = font.render('Not Ready', True, ClientConstants.RED)
+        else:
+            t = font.render('Spectating', True, ClientConstants.WHITE)
         tr = t.get_rect()
         tr.center = (WIDTH // 2, HEIGHT - 50)
         text_recs.append(tr)
@@ -132,7 +130,6 @@ class GameClient:
         for power_up in self._game_state.ground_power_up:
             pg.draw.circle(self._window, ClientConstants.POWER_UP_COLORS[power_up.power_up_type], (power_up.location.x, power_up.location.y), ClientConstants.POWER_UP_RADIUS)
 
-
         for event in pg.event.get():
             player_input = PlayerInput.PlayerInput()
             if event.type == pg.KEYDOWN:
@@ -147,14 +144,11 @@ class GameClient:
 
     def _render_lobby_state(self):
         self._window.fill(ClientConstants.BACKGROUND_COLOR)
-        #ready_count = len([x for x in self._game_state.player_list if x.player_status == PlayerStatus.PlayerStatus.READY])
-        #player_count = len(self._game_state.player_list)
 
         font = pg.font.Font(None, 32)
 
         # storing all elements for easy rendering later
         render_elements = []
-
 
         text = font.render(f'Lobby ID: {self._game_state.game_server_id}', True, ClientConstants.WHITE)
         text_rect = text.get_rect()
@@ -166,13 +160,7 @@ class GameClient:
         text_rect.center = (WIDTH // 2, HEIGHT // 2 - 100)
         render_elements.append((text, text_rect))
 
-        #text = font.render(f'{ready_count} of {player_count} Players ready', True, ClientConstants.BLUE)
-        #text_rect = text.get_rect()
-        #text_rect.center = (WIDTH // 2, HEIGHT // 2)
-        #render_elements.append((text, text_rect))
-
         own_player_state = None
-        color = None    # None => Spectator
 
         # check whether client is ready
         count = 0
@@ -185,7 +173,6 @@ class GameClient:
                 else:
                     text = font.render("You are a Player", True, player.color)
             else:
-                ready_text = ''
                 if player.player_status == PlayerStatus.PlayerStatus.SPECTATING:
                     ready_text = 'Spectating'
                 elif player.player_status == PlayerStatus.PlayerStatus.READY:
@@ -194,9 +181,7 @@ class GameClient:
                     ready_text = 'Not Ready'
                 color = player.color if player.color is not None else ClientConstants.BLACK
                 text = font.render(f'{player.name} ({ready_text})', True, color)
-                #text_rect = text.get_rect()
-                #text_rect.center = (WIDTH // 2, HEIGHT // 2 + 50 * count)
-                #render_elements.append((text, text_rect))
+
 
             text_rect = text.get_rect()
             text_rect.center = (WIDTH // 2, HEIGHT // 2 + 50 * count)
@@ -337,9 +322,10 @@ class GameClient:
         print(game_state.state)
         self._force_wait = False
 
-        # detecting own player_id (assigned by server)
         if self._player_id is None:
-            self._player_id = self._game_state.player_list[-1].id
+            self._player_id = self._client.get_id()
+            print(self._player_id)
+
 
     def start(self):
         clock = pg.time.Clock()

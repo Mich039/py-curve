@@ -1,3 +1,4 @@
+import hashlib
 import socket
 import pickle
 import time
@@ -28,6 +29,9 @@ class Client(threading.Thread, asyncore.dispatcher):
         self.host = host
         self.port = port
 
+        self.own_ip = None
+        self.own_port = None
+
         self.name = name
         self.log.info('Connecting to host at %s', host)
         self.outbox = collections.deque()
@@ -55,6 +59,11 @@ class Client(threading.Thread, asyncore.dispatcher):
         self.socket.setblocking(1)
         self.connect((self.host, self.port))
         asyncore.loop(map=self._thread_sockets)
+
+    def get_id(self):
+        to_hash = self.socket.getsockname()[0] + str(self.socket.getsockname()[1])
+        print(to_hash)
+        return hashlib.sha256(to_hash.encode()).hexdigest()
 
     def say(self, message):
         """

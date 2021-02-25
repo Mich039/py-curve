@@ -54,7 +54,7 @@ class RemoteClient(asyncore.dispatcher):
         Check the type of the received object and choose further actions.
         :return:
         """
-        self._log.info('Read')
+        #self._log.info('Read')
         received_message = self.recv(MAX_MESSAGE_LENGTH)
         if len(received_message) > 0:
             #try:
@@ -65,10 +65,10 @@ class RemoteClient(asyncore.dispatcher):
             return
 
         if isinstance(client_message, PlayerLobbyInput):
-            self._log.info('received PlayerLobbyInput')
+            #self._log.info('received PlayerLobbyInput')
             self.handle_lobby_input(client_message)
         elif isinstance(client_message, PlayerInput):
-            self._log.info('received PlayerInput')
+            #self._log.info('received PlayerInput')
             self.handle_player_input(client_message)
         else:
             self._log.info('received invalid input from client: Type {0}'.format(type(client_message)))
@@ -215,7 +215,7 @@ class Host(asyncore.dispatcher):
         :param message:
         :return:
         """
-        self.log.info('Broadcasting message from game_server %s', message)
+        #self.log.info('Broadcasting message from game_server %s', message)
         keys = list(_game_servers.keys())
         game_server = next((x for x in keys if x.id == game_server_id), None)
         if game_server is not None:
