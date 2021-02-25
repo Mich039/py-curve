@@ -6,6 +6,6 @@ POWER_UP_TICKS = {
     PowerUpType.FLYING: 100,
     PowerUpType.CLEAR: 100,
     PowerUpType.ENEMY_INVERSE: 100,
-    PowerUpType.CORNER: 100,
+    PowerUpType.CORNER: 10,
     PowerUpType.ENEMY_CORNER: 100
 }

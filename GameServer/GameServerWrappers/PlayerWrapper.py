@@ -5,6 +5,8 @@ from typing import List, Optional
 import GameObjects.Player as Player
 from GameObjects.Point import Point
 from GameObjects.PowerUp import PowerUp
+from GameObjects.PowerUpType import PowerUpType
+from GameServer import PowerUpHelper
 from GameServer.CollisionDetectionHelper import check_collision, is_relevant
 from GameServer.GameServerWrappers.ListSegment import ListSegment
 from GameServer.GameServerWrappers.PlayerInputWrapper import PlayerInputWrapper
@@ -133,15 +135,33 @@ class PlayerWrapper:
     def _random_time_visible() -> int:
         return math.trunc(random.uniform(ServerConstants.MIN_TICKS_VISIBLE, ServerConstants.MAX_TICKS_VISIBLE))
 
+    def _calculate_rotation(self, input: PlayerInputWrapper) -> float:
+        rotation: float = 0
+
+        if self._is_square():
+            if input.left and not input.processed:
+                rotation = -90
+            if input.right and not input.processed:
+                rotation = 90
+        else:
+            if input.left:
+                rotation = -ServerConstants.ROTATION_SPEED
+            if input.right:
+                rotation = ServerConstants.ROTATION_SPEED
+
+        if self._is_inverted():
+            rotation *= -1
+        return rotation
+
     def move(self, input: PlayerInputWrapper, game_state) -> bool:
-        if input.left:
-            self.rotate_by(-ServerConstants.ROTATION_SPEED)
+        rotation: float = self._calculate_rotation(input)
+        if not rotation == 0:
+            self.rotate_by(rotation)
 
-        if input.right:
-            self.rotate_by(ServerConstants.ROTATION_SPEED)
+        mult: float = self._get_current_speed_multiplier()
 
-        self.player.head.x += self.velocity * math.sin(self._player.angle)
-        self.player.head.y += self.velocity * -math.cos(self._player.angle)
+        self.player.head.x += self.velocity * mult * math.sin(self._player.angle)
+        self.player.head.y += self.velocity * mult * -math.cos(self._player.angle)
 
         if self._invisible_ticks > 0:
             self._invisible_ticks -= 1
@@ -152,13 +172,25 @@ class PlayerWrapper:
             collected_power_up: Optional[PowerUp] = self._check_for_power_up_collision(game_state)
             if collected_power_up is not None:
                 game_state.ground_power_up.remove(collected_power_up)
+                if PowerUpHelper.is_enemy_power_up(collected_power_up):
+                    for player in [player for player in game_state.player_list.values() if not player.player.id == self.player.id]:
+                        player.player.active_power_ups.append(PowerUpHelper.duplicate_power_up(collected_power_up))
+                elif PowerUpHelper.is_global_power_up(collected_power_up):
+                    if collected_power_up.power_up_type == PowerUpType.CLEAR:
+                        for player in game_state.player_list.values():
+                            player.clear_body()
+                else:
+                    self._player.active_power_ups.append(collected_power_up)
+                    if collected_power_up.power_up_type == PowerUpType.FLYING:
+                        self._body.append(ListSegment())
 
-            if not self._check_player_collision(game_state):
+            if not self._check_player_collision(game_state) and not self._is_flying():
                 return False
             if not self._check_for_wall_collision(game_state):
                 return False
 
-            self._body[len(self._body) - 1].add_point(Point(self.player.head.x, self.player.head.y))
+            if not self._is_flying():
+                self._body[len(self._body) - 1].add_point(Point(self.player.head.x, self.player.head.y))
 
             if self._visible_ticks > 0:
                 self._visible_ticks -= 1
@@ -171,3 +203,31 @@ class PlayerWrapper:
 
     def clear_body(self):
         self._body = [ListSegment(), ]
+
+    def _get_current_speed_multiplier(self) -> float:
+        multiplier: float = 1.0
+        for power_up in self._player.active_power_ups:
+            if power_up.power_up_type in (PowerUpType.SPEED, ):
+                multiplier *= ServerConstants.SPEED_MULTIPLIER
+            elif power_up.power_up_type in (PowerUpType.SLOW, ):
+                multiplier /= ServerConstants.SPEED_MULTIPLIER
+        return multiplier
+
+    def _is_inverted(self) -> bool:
+        return PowerUpType.ENEMY_INVERSE in (p.power_up_type for p in self._player.active_power_ups)
+
+    def _is_square(self) -> bool:
+        return PowerUpType.ENEMY_CORNER in (p.power_up_type for p in self._player.active_power_ups) \
+                or PowerUpType.CORNER in (p.power_up_type for p in self._player.active_power_ups)
+
+    def _is_flying(self) -> bool:
+        return PowerUpType.FLYING in (p.power_up_type for p in self._player.active_power_ups)
+
+    def power_up_tick(self):
+        expired_power_ups = []
+        for power_up in self._player.active_power_ups:
+            power_up.ticks_left -= 1
+            if power_up.ticks_left < 0:
+                expired_power_ups.append(power_up)
+        for power_up_to_remove in expired_power_ups:
+            self._player.active_power_ups.remove(power_up_to_remove)

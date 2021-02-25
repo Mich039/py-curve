@@ -7,7 +7,7 @@ from GameObjects import GameState, PlayerStatus
 from GameObjects.LobbyState import LobbyState
 from Socket.client import Client
 
-IP = "127.0.0.1"
+IP = "127.0.0.1"  # "gattinger.ddns.net"
 PORT = 4321
 WIDTH = 1000
 HEIGHT = 1000

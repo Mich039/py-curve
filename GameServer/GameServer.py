@@ -167,6 +167,7 @@ class GameServer:
         for player in [player for player in self._gameState.player_list.values() if
                        not player.player.player_status == PlayerStatus.SPECTATING]:
             player.player.player_status = PlayerStatus.ALIVE
+            player.player.active_power_ups.clear()
             player.clear_body()
             player.init_position(GameServer._get_random_point(), GameServer._get_random_angle())
 
@@ -306,6 +307,7 @@ class GameServer:
         self._spawn_power_ups()
         for player_id, player in self._gameState.player_list.items():
             if player.player.player_status == PlayerStatus.ALIVE:
+                player.power_up_tick()
                 if not player.move(self._inputs[player_id], game_state=self._gameState):
                     player.player.player_status = PlayerStatus.DEAD
                     player.player.score.deaths += 1
