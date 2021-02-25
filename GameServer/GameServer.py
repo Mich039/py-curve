@@ -106,6 +106,7 @@ class GameServer:
         :param id: Player id.
         :return:
         """
+        print(f"removing {id}")
         self._gameState.remove(id)
 
     def _get_current_default_player_status(self) -> PlayerStatus:
@@ -254,8 +255,8 @@ class GameServer:
             self._init_new_game()
             self._gameState.state = LobbyState.IN_GAME
 
-        elif change:
-            self._broadcast_state()
+        #elif change:
+        self._broadcast_state()
 
     def _players_alive(self) -> bool:
         """ Checks if more than one player is alive. True if so False if not """
@@ -376,9 +377,11 @@ class GameServer:
         """
         handle_result = self._handle_ready_inputs()
 
+        self._remove_players()
+
         if handle_result[1]:
             self._init_new_round()
             self._gameState.state = LobbyState.IN_GAME
 
-        elif handle_result[0] or self._remove_players():
-            self._broadcast_state()
+        #elif handle_result[0] or self._remove_players():
+        self._broadcast_state()

@@ -1,13 +1,17 @@
 # define default thickness for drawing lines (must be odd)
 from GameObjects.PowerUpType import PowerUpType
 
-IP = "192.168.100.11"
+IP = "gattinger.ddns.net"
 PORT = 4321
 
 LINE_THICKNESS = 3
 # define diameter of head, should be close to LINE_THICKNESS
 HEAD_RADIUS = 3
 BACKGROUND_COLOR = (30, 30, 30)
+
+FIELD_INACTIVE_COLOR = (50, 50, 90)
+FIELD_ACTIVE_COLOR = (50, 50, 220)
+
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 GREEN = (0, 255, 0)

@@ -1,7 +1,7 @@
 # The play area is a square
 PLAY_AREA_SIZE = 1000
 # Tick rate as ticks per second
-TICK_RATE = 20.0
+TICK_RATE = 30.0
 # Base Speed as Distance per Tick
 BASE_SPEED = 4.0
 # Rotation Speed as Degrees per Tick
@@ -28,7 +28,7 @@ MIN_TICKS_VISIBLE = 100
 # Maximum Tick Visible until hole in player
 MAX_TICKS_VISIBLE = 300
 # Probability that a power up will spawn in a tick. The Range is 0 to 100%
-POWER_UP_CHANCE = 0.8
+POWER_UP_CHANCE = 0.3
 # Player Width
 PLAYER_WIDTH_RADIUS = 3.0
 # The Size of the power up. For the detection of a collision

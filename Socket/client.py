@@ -70,11 +70,6 @@ class Client(threading.Thread, asyncore.dispatcher):
         self.connect((self.host, self.port))
         asyncore.loop(map=self._thread_sockets)
 
-    def get_id(self):
-        to_hash = self.socket.getsockname()[0] + str(self.socket.getsockname()[1])
-        print(to_hash)
-        return hashlib.sha256(to_hash.encode()).hexdigest()
-
     def say(self, message):
         """
         Send a message to socket server.

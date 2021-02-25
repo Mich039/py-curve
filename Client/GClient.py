@@ -24,7 +24,6 @@ class GameClient:
     def __init__(self):
         self._game_state: GameState = None
         self._client: Client = None
-        self._player_id: str = None
         self._window = pg.display.set_mode((WIDTH, HEIGHT))
         self._force_wait = False
         self._last_input = None
@@ -32,7 +31,6 @@ class GameClient:
     def init_client(self, ip=ClientConstants.IP, port=ClientConstants.PORT, name="User"):
         self._client = Client(ip, port, name)
         self._client.receive_message_event = self._handle_game_state
-        print("init client done")
 
     def join(self, id: int, username: str):
         if not username or len(username) < 1:
@@ -51,20 +49,11 @@ class GameClient:
         self._client.say(lobby)
         return True
 
-    def test(self):
-        self._window.fill((30, 30, 30))
-        blue = (0, 0, 128)
-        green = (0, 255, 0)
-        font = pg.font.Font(None, 32)
-        text = font.render('Waiting For Start', True, green, blue)
-        textRect = text.get_rect()
-        textRect.center = (WIDTH // 2, HEIGHT // 2)
-        self._window.blit(text, textRect)
-        for event in pg.event.get():
-            print(event)
-    # toggle ready
-
     def _render_between_rounds(self):
+        """
+        Instructs PyGame to draw the pause/score-screen
+        Should be called periodically during the main loop if lobby_state (part of game_state) is set to between_game.
+        """
         text_recs = []
         texts = []
         font = pg.font.Font(None, 32)
@@ -79,7 +68,7 @@ class GameClient:
         count = 0
         ready_state = None
         for player in self._game_state.player_list:
-            if player.id == self._player_id:
+            if player.id == self._client.client_id:
                 ready_state = player.player_status
                 font.set_italic(True)
             else:
@@ -117,6 +106,10 @@ class GameClient:
                 self._client.say(input)
 
     def _render_game(self):
+        """
+        Instructs PyGame to draw the current game_state.
+        Should be called periodically during the main loop if lobby_state (part of game_state) is set to in-game.
+        """
         self._window.fill(ClientConstants.BACKGROUND_COLOR)
         for player in self._game_state.player_list:
             if player.player_status is not PlayerStatus.PlayerStatus.SPECTATING:
@@ -141,8 +134,11 @@ class GameClient:
                 self._client.say(player_input)
             self._last_input = player_input
 
-
     def _render_lobby_state(self):
+        """
+        Instructs PyGame to draw the lobby_screen.
+        Should be called periodically during the main loop if lobby_state (part of game_state) is set to lobby.
+        """
         self._window.fill(ClientConstants.BACKGROUND_COLOR)
 
         font = pg.font.Font(None, 32)
@@ -166,7 +162,7 @@ class GameClient:
         count = 0
         for player in self._game_state.player_list:
             count += 1
-            if player.id == self._player_id:
+            if player.id == self._client.client_id:
                 own_player_state = player.player_status
                 if player.color is None:
                     text = font.render("You are a Spectator", True, ClientConstants.BLACK)
@@ -181,7 +177,6 @@ class GameClient:
                     ready_text = 'Not Ready'
                 color = player.color if player.color is not None else ClientConstants.BLACK
                 text = font.render(f'{player.name} ({ready_text})', True, color)
-
 
             text_rect = text.get_rect()
             text_rect.center = (WIDTH // 2, HEIGHT // 2 + 50 * count)
@@ -216,20 +211,39 @@ class GameClient:
             self._window.blit(element[0], element[1])
 
     def _render_menu(self):
+        render_elements = []
+
+        header_font = pg.font.Font(None, 48)
         font = pg.font.Font(None, 32)
-        color_inactive = pg.Color('lightskyblue3')
-        color_active = pg.Color('dodgerblue2')
+        color_inactive = ClientConstants.FIELD_INACTIVE_COLOR
+        color_active = ClientConstants.FIELD_ACTIVE_COLOR
 
-        lobby_box = pg.Rect(WIDTH // 2 + 100, HEIGHT // 2 + 34, 140, 32)
-        username_box = pg.Rect(WIDTH // 2, HEIGHT // 2 + 134, 140, 32)
-        username_header = font.render("Enter Username:", True, ClientConstants.WHITE)
-        username_header_box = username_header.get_rect()
-        username_header_box.center = (WIDTH // 2 - 100, HEIGHT // 2 + 150)
+        lobby_box = pg.Rect(WIDTH // 2 - 60, HEIGHT // 2 + 50, 140, 32)
+        lobby_box.bottomleft = (WIDTH // 2 + 50, HEIGHT // 2 + 100)
+        username_box = pg.Rect(WIDTH // 2, HEIGHT // 2 - 116, 140, 32)
+        username_box.bottomleft = (WIDTH // 2 + 50, HEIGHT // 2 - 95)
 
-        button_text = font.render("New Lobby", True, ClientConstants.WHITE)
-        button_rect = pg.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 34, 120, 32)
-        button_rect.center = (WIDTH // 2 - 100, HEIGHT // 2 + 50)
+        text = header_font.render("CURVE FEVER 2.0", True, ClientConstants.GREEN)
+        text_box = text.get_rect()
+        text_box.center = (WIDTH // 2, HEIGHT // 2 - 300)
 
+        render_elements.append((text, text_box))
+
+        text = font.render("Enter Username:", True, ClientConstants.WHITE)
+        text_box = text.get_rect()
+        text_box.bottomleft = (WIDTH // 2 - 200, HEIGHT // 2 - 100)
+
+        render_elements.append((text, text_box))
+
+        text = font.render("Create or Join Lobby:", True, ClientConstants.WHITE)
+        text_box = text.get_rect()
+        text_box.bottomleft = (WIDTH // 2 - 200, HEIGHT // 2 + 50)
+
+        render_elements.append((text, text_box))
+
+        button_text = font.render("New Lobby", True, ClientConstants.FIELD_INACTIVE_COLOR)
+        button_rect = pg.Rect(WIDTH // 2, HEIGHT // 2, 120, 32)
+        button_rect.bottomleft = (WIDTH // 2 + 50, HEIGHT // 2 + 55)
         button_rect.width += 5
         button_rect.width += 5
 
@@ -277,10 +291,6 @@ class GameClient:
                         else:
                             username_field_color = ClientConstants.RED
 
-                    # Change the current color of the input box.
-                    # lobby_field_color = color_active if lobby_field_active else color_inactive
-                    # username_field_color = color_active if username_field_active else color_inactive
-
                 if event.type == pg.KEYDOWN:
                     if lobby_field_active:
                         if event.key == pg.K_RETURN:
@@ -304,13 +314,16 @@ class GameClient:
             username_surface = font.render(username, True, username_field_color)
 
             # Resize the box if the text is too long.
+            width = max(120, username_surface.get_width()+10)
+            username_box.w = width
             width = max(60, lobby_surface.get_width()+10)
             lobby_box.w = width
             # Blit the text.
             self._window.blit(lobby_surface, (lobby_box.x+5, lobby_box.y+5))
             self._window.blit(username_surface, (username_box.x+5, username_box.y+5))
             self._window.blit(button_text, (button_rect.x + 5, button_rect.y + 5))
-            self._window.blit(username_header, username_header_box)
+            for e in render_elements:
+                self._window.blit(e[0], e[1])
             # Blit the input_box rect.
             pg.draw.rect(self._window, lobby_field_color, lobby_box, 2)
             pg.draw.rect(self._window, username_field_color, username_box, 2)
@@ -319,13 +332,7 @@ class GameClient:
 
     def _handle_game_state(self, game_state: GameState):
         self._game_state = game_state
-        print(game_state.state)
         self._force_wait = False
-
-        if self._player_id is None:
-            self._player_id = self._client.get_id()
-            print(self._player_id)
-
 
     def start(self):
         clock = pg.time.Clock()
