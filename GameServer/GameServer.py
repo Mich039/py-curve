@@ -12,6 +12,7 @@ from GameObjects.Player import Player
 from GameObjects.Input.PlayerInput import PlayerInput
 from GameObjects.PlayerStatus import PlayerStatus
 from GameObjects.Point import Point
+from GameServer import PowerUpHelper
 from GameServer.GameServerWrappers.GameStateWrapper import GameStateWrapper
 from GameServer.GameServerWrappers.PlayerInputWrapper import PlayerInputWrapper
 from GameServer.GameServerWrappers.PlayerWrapper import PlayerWrapper
@@ -42,6 +43,8 @@ class GameServer:
         self._gameState.state = LobbyState.LOBBY
         self._scheduler.enter(delay=0, priority=0, action=self._tick)
         self._scheduler.run(blocking=True)
+        if self._remove_game_server is not None:
+            self._remove_game_server(self)
 
     @property
     def remove_game_server(self):
@@ -99,7 +102,7 @@ class GameServer:
     def remove_player(self, id: str):
         """
         Remove a player by id.
-        The player will be removed on the next state.
+        The player will be removed on the next tick.
         :param id: Player id.
         :return:
         """
@@ -137,8 +140,9 @@ class GameServer:
         change: bool = False
         for player_id in self._gameState.to_remove:
             change = self._gameState.player_list.pop(player_id, None) is not None or change
+            self._inputs.pop(player_id, None)
             self._log.info("Removed Player '{id}' from game state".format(id=player_id))
-        self._gameState.to_remove.clear()
+            self._gameState.to_remove.clear()
         return change
 
     def _init_between_games(self):
@@ -285,6 +289,9 @@ class GameServer:
         # When the player has an actual color set it in the player color dict so the color is occupied
         if new_color is not None:
             self._player_colors[new_color] = player_id
+            self._gameState.player_list[player_id].player.player_status = PlayerStatus.NOT_READY
+        else:
+            self._gameState.player_list[player_id].player.player_status = PlayerStatus.SPECTATING
 
         # Set the color in the player to send to the client
         self._gameState.player_list[player_id].player.color = new_color
@@ -313,9 +320,7 @@ class GameServer:
             # Pick one of the PowerUps
             type: PowerUpType = random.choice(list(PowerUpType))
             # Setup the new PowerUp
-            new_power_up = PowerUp()
-            new_power_up.location = self._get_random_point()
-            new_power_up.power_up_type = type
+            new_power_up = PowerUpHelper.create_power_up(type, self._get_random_point())
             # Add to game state
             self._gameState.ground_power_up.append(new_power_up)
 
@@ -329,15 +334,15 @@ class GameServer:
         """
         # Process Inputs
         change: bool = False
-        for key, value in self._inputs.items():
+        for key, value in [item for item in self._inputs.items() if not self._gameState.player_list[item[0]].player.player_status == PlayerStatus.SPECTATING]:
             if value.space and not value.processed:
                 old_state = self._gameState.player_list[key].player.player_status
                 self._gameState.player_list[key].player.player_status = \
                     PlayerStatus.READY if old_state == PlayerStatus.NOT_READY else PlayerStatus.NOT_READY
                 change = True
 
-        # Check if all Players are ready
-        all_ready: bool = len(self._gameState.player_list) > 0
+        # Check if all non spectating Players are ready
+        all_ready: bool = len([player for player in self._gameState.player_list.values() if not player.player.player_status == PlayerStatus.SPECTATING]) > 0
         for player_id, player in self._gameState.player_list.items():
             all_ready = all_ready and not player.player.player_status == PlayerStatus.NOT_READY
         return change, all_ready

@@ -218,14 +218,14 @@ class Host(asyncore.dispatcher):
             for remote_client in _game_servers[game_server]:
                 remote_client.say(message)
 
-    def remove_game_server(self, game_server_id: int):
+    def remove_game_server(self, game_server: GameServer):
         """
-        Remove a GameServer by Id.
-        :param game_server_id:
-        :return:
+        Remove a GameServer.
+        :param game_server: The game server to be deleted
         """
         try:
-            _game_servers.pop(game_server_id)
+            _game_servers.pop(game_server)
+            self.log.info(f" Game server with id {game_server.id} closed.")
         except:
             pass  # ignore
 

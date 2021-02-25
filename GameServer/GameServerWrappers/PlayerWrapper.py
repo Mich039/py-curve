@@ -1,9 +1,10 @@
 import math
 import random
-from typing import List
+from typing import List, Optional
 
 import GameObjects.Player as Player
 from GameObjects.Point import Point
+from GameObjects.PowerUp import PowerUp
 from GameServer.CollisionDetectionHelper import check_collision, is_relevant
 from GameServer.GameServerWrappers.ListSegment import ListSegment
 from GameServer.GameServerWrappers.PlayerInputWrapper import PlayerInputWrapper
@@ -115,6 +116,19 @@ class PlayerWrapper:
     def _check_for_wall_collision(self, game_state) -> bool:
         return not (self._player.head.x >= ServerConstants.PLAY_AREA_SIZE or self._player.head.x <= 0 or self._player.head.y >= ServerConstants.PLAY_AREA_SIZE or self._player.head.y <= 0)
 
+    def _check_for_power_up_collision(self, game_state) -> Optional[PowerUp]:
+        """
+        Checks if the player collided with a power up
+
+        :param game_state: The game state with the current ground power ups in it
+        :return: The power up the player collided with. Otherwise None
+        """
+        for power_up in game_state.ground_power_up:
+            if (self.player.head.x-power_up.location.x)**2 + (self.player.head.y-power_up.location.y)**2 <= ServerConstants.POWER_UP_RADIUS**2:
+                # We got one boys!
+                return power_up
+        return None
+
     @staticmethod
     def _random_time_visible() -> int:
         return math.trunc(random.uniform(ServerConstants.MIN_TICKS_VISIBLE, ServerConstants.MAX_TICKS_VISIBLE))
@@ -135,8 +149,12 @@ class PlayerWrapper:
                 self._visible_ticks = PlayerWrapper._random_time_visible()
         else:
 
+            collected_power_up: Optional[PowerUp] = self._check_for_power_up_collision(game_state)
+            if collected_power_up is not None:
+                game_state.ground_power_up.remove(collected_power_up)
+
             if not self._check_player_collision(game_state):
-                return False  # TODO: Maybe the last point should be added
+                return False
             if not self._check_for_wall_collision(game_state):
                 return False
 

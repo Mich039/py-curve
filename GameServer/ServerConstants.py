@@ -31,3 +31,5 @@ MAX_TICKS_VISIBLE = 500
 POWER_UP_CHANCE = 0.8
 # Player Width
 PLAYER_WIDTH_RADIUS = 3.0
+# The Size of the power up. For the detection of a collision
+POWER_UP_RADIUS = 15
