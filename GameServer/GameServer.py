@@ -118,19 +118,18 @@ class GameServer:
         else:
             return PlayerStatus.NOT_READY
 
-    def _get_player_color(self, player_id: str):
+    def _get_player_color(self, player_id: str) -> Optional[Color]:
         """
         Get the color of the player by id.
         :param player_id:
-        :return:
+        :return: Returns the next free Color, if no color is free None is returned
         """
         for k, v in self._player_colors.items():
             print(k, v)
             if v is None:
-                print("free color found")
                 self._player_colors[k] = player_id
-                print("returning color")
                 return k
+        return None
 
     def _remove_players(self) -> bool:
         """
@@ -148,7 +147,6 @@ class GameServer:
     def _init_between_games(self):
         """
         Set PlayerStatus to Not_Ready on all players.
-        :return:
         """
         self._gameState.state = LobbyState.BETWEEN_GAMES
         for player in [player for player in self._gameState.player_list.values() if
@@ -160,7 +158,6 @@ class GameServer:
         Initialise new round.
         Set PlayerStatus to ALIVE and reset the body of all players.
         Also set the position of each player for the next round.
-        :return:
         """
         # Remove all the power ups
         self._gameState.ground_power_up.clear()
@@ -174,7 +171,6 @@ class GameServer:
     def _init_new_game(self):
         """
         Initialise new game and reset score.
-        :return:
         """
         for player in self._gameState.player_list.values():
             player.reset_score()
@@ -183,7 +179,6 @@ class GameServer:
     def _broadcast_state(self):
         """
         Tell the Socket server to broadcast the GameState to all players of this GameServer.
-        :return:
         """
         if self._broadcast is not None:
             self._broadcast(self.id, self._gameState.to_game_state())
@@ -193,7 +188,6 @@ class GameServer:
         This Method is called everytime the scheduler calls.
         If the lobby is still active (Has players) it will refresh the scheduler tick and call the current tick function
         according to the game state. Additionally it also sets the inputs to processed.
-        :return:
         """
         # Check if there are any players in that Lobby
         self._canceled = len(self._gameState.player_list) == 0
@@ -201,14 +195,11 @@ class GameServer:
         if not self._canceled or self._new_server:
             start_time = time.time()
             next_start_time = start_time + 1 / ServerConstants.TICK_RATE
-            time_available = next_start_time*1000 - start_time*1000
             self._scheduler.enterabs(time=next_start_time, priority=0, action=self._tick)
 
         # React depending on State
         if self._gameState.state == LobbyState.IN_GAME:
             self._in_game_tick()
-            #  time_taken = (time.time() * 1000 - start_time * 1000)
-            #  print("Time taken: {time:.10f} ms {time_perc}%".format(time=time_taken, time_perc=time_taken / time_available))
         elif self._gameState.state == LobbyState.BETWEEN_GAMES:
             self._between_game_tick()
         else:
@@ -228,7 +219,6 @@ class GameServer:
     def _get_random_point() -> Point:
         """
         Get a random point in the arena.
-        :return:
         """
         return Point(random.uniform(0, ServerConstants.PLAY_AREA_SIZE),
                      random.uniform(0, ServerConstants.PLAY_AREA_SIZE))
@@ -236,12 +226,14 @@ class GameServer:
     def _inputs_processed(self):
         """
         Set all player inputs to processed.
-        :return:
         """
         for input in self._inputs.values():
             input.processed = True
 
     def _lobby_tick(self):
+        """
+        This method handles the ticks in the game state lobby
+        """
         change: bool = False
         handle_result = self._handle_ready_inputs()
         change = handle_result[0]
@@ -298,11 +290,17 @@ class GameServer:
         self._gameState.player_list[player_id].player.color = new_color
 
     def _calculate_score(self):
+        """
+        When this function is call all players that are still alive get one Score Point
+        """
         for player_id, player in self._gameState.player_list.items():
             if player.player.player_status == PlayerStatus.ALIVE:
                 player.player.score.score_points += ServerConstants.DEATH_SCORE
 
     def _in_game_tick(self):
+        """
+        This tick function holds the logic for the in game mechanics
+        """
         #  move_start_time = time.time() * 1000
         self._spawn_power_ups()
         for player_id, player in self._gameState.player_list.items():
@@ -318,6 +316,9 @@ class GameServer:
         self._broadcast_state()
 
     def _spawn_power_ups(self):
+        """
+        Randomly spawns power ups in random locations on the playfield
+        """
         if random.uniform(0, 100) <= ServerConstants.POWER_UP_CHANCE:
             # Pick one of the PowerUps
             type: PowerUpType = random.choice(list(PowerUpType))
