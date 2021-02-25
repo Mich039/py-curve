@@ -7,6 +7,7 @@ import threading
 import hashlib
 import time
 
+from GameObjects.AcceptClientStatus import AcceptClientStatus
 from GameObjects.GameState import GameState
 from GameObjects.GameState import LobbyState
 from GameObjects.Input.PlayerInput import PlayerInput
@@ -40,6 +41,7 @@ class RemoteClient(asyncore.dispatcher):
         asyncore.dispatcher.__init__(self, socket)
         self._log = logging.getLogger('RemoteClient {0}'.format(address))
         to_hash = address[0] + str(address[1])
+        self._address = address
         self._client_id = hashlib.sha256(to_hash.encode()).hexdigest()
         self._log.info(f'Client-Id {self._client_id}')
         self._host = host
@@ -47,6 +49,11 @@ class RemoteClient(asyncore.dispatcher):
         self._game_server = None
         self._server_broadcast = server_broadcast
         self._remove_game_server = remove_game_server
+        self.send_init_to_client()
+
+    def send_init_to_client(self):
+        init = AcceptClientStatus(self._address[0], self._address[1], self._client_id)
+        self.say(init)
 
     def handle_read(self):
         """

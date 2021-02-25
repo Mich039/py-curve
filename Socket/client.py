@@ -8,6 +8,7 @@ import collections
 import threading
 from datetime import datetime
 
+from GameObjects.AcceptClientStatus import AcceptClientStatus
 from GameObjects.GameState import GameState
 from GameObjects.Input.PlayerInput import PlayerInput
 from GameObjects.Input.PlayerLobbyInput import PlayerLobbyInput
@@ -37,6 +38,7 @@ class Client(threading.Thread, asyncore.dispatcher):
         self.outbox = collections.deque()
         self._receive_message_event = None
         self._message_buffer = None
+        self._client_id = None
         self.start()
 
 
@@ -48,6 +50,14 @@ class Client(threading.Thread, asyncore.dispatcher):
     def receive_message_event(self, value):
         if callable(value):
             self._receive_message_event = value
+
+    @property
+    def client_id(self):
+        return self._client_id
+
+    @client_id.setter
+    def client_id(self, value):
+        self._client_id = value
 
     def run(self):
         """
@@ -127,6 +137,9 @@ class Client(threading.Thread, asyncore.dispatcher):
         #     message_decode = pickle.loads(b"".join(data))
         if isinstance(data, GameState) and self._receive_message_event is not None:
             self._receive_message_event(data)
+        elif isinstance(data, AcceptClientStatus):
+            self._client_id = data.id
+            print(self._client_id)
 
 
 def main():
