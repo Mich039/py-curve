@@ -11,7 +11,7 @@ from GameObjects.GameState import GameState
 from GameObjects.Input.PlayerInput import PlayerInput
 from GameObjects.Input.PlayerLobbyInput import PlayerLobbyInput
 
-MAX_MESSAGE_LENGTH = 1024
+MAX_MESSAGE_LENGTH = 4096
 
 _sentinel = b'\x00\x00END_MESSAGE!\x00\x00'
 
@@ -91,12 +91,19 @@ class Client(threading.Thread, asyncore.dispatcher):
         data = None
         blocks = []
         while True:
-            blocks.append(self.recv(MAX_MESSAGE_LENGTH))
+            message = self.recv(MAX_MESSAGE_LENGTH)
+            #print(message)
+            sentinel_pos = message.find(_sentinel)
+            if sentinel_pos > 0:
+                message = message[:sentinel_pos+1]
+                blocks.append(message)
+                #print("break")
+                break
+            blocks.append(message)
             #print(blocks[-1])
             #print(_sentinel)
-            if blocks[-1] == _sentinel:
-                #print("breaking")
-                break
+            #sentinel_pos = blocks[-1].find(_sentinel)
+
         data = pickle.loads(b''.join(blocks))
         # data = []
         # packet = self.recv(MAX_MESSAGE_LENGTH)
@@ -110,7 +117,7 @@ class Client(threading.Thread, asyncore.dispatcher):
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    client = Client("192.168.100.11", 4321, 'test_1')
+    client = Client("127.0.0.1", 4321, 'test_1')
     client.start()
 
     lobby = PlayerLobbyInput()

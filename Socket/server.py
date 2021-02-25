@@ -13,7 +13,7 @@ from GameObjects.Input.PlayerInput import PlayerInput
 from GameObjects.Input.PlayerLobbyInput import PlayerLobbyInput
 from GameServer.GameServer import GameServer
 
-MAX_MESSAGE_LENGTH = 1024  # message length
+MAX_MESSAGE_LENGTH = 4096  # message length
 
 _game_servers = dict()  # {key: GameServer; value: List<RemoteClient>()}
 _game_server_ids = 1
@@ -57,7 +57,9 @@ class RemoteClient(asyncore.dispatcher):
         self._log.info('Read')
         received_message = self.recv(MAX_MESSAGE_LENGTH)
         if len(received_message) > 0:
+            #try:
             client_message = pickle.loads(received_message)
+            #except:
         else:
             self._log.info('received message is empty')
             return
@@ -143,9 +145,10 @@ class RemoteClient(asyncore.dispatcher):
         if not self._outbox:
             return
         message = self._outbox.popleft()
+        message = message + _sentinel
         self.send(message)
-        time.sleep(0.001)
-        self.send(_sentinel)
+        #time.sleep(0.001)
+        #self.send(_sentinel)
 
     def handle_close(self) -> None:
         """
@@ -234,6 +237,6 @@ class Host(asyncore.dispatcher):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     logging.info('Create host')
-    host = Host('127.0.0.1', 4321)
+    host = Host('192.168.100.11', 4321)
     # host.start()
     asyncore.loop()
