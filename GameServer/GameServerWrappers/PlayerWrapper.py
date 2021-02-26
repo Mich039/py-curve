@@ -110,8 +110,8 @@ class PlayerWrapper:
                 for point in segment.list:
                     count = count + 1
                     # Only check for collision with point if the line in near the head
-                    if not is_relevant(self.player.head, point):
-                        continue
+                    # if not is_relevant(self.player.head, point):
+                    # continue
                     # Skip every other point. The line that will get checked is longer and the performance is better
                     if count % 2 == 0:
                         continue
@@ -297,7 +297,7 @@ class PlayerWrapper:
         :return: True if the player has an active CORNER power up
         """
         return PowerUpType.ENEMY_CORNER in (p.power_up_type for p in self._player.active_power_ups) \
-               or PowerUpType.CORNER in (p.power_up_type for p in self._player.active_power_ups)
+            or PowerUpType.CORNER in (p.power_up_type for p in self._player.active_power_ups)
 
     def _is_flying(self) -> bool:
         """
@@ -309,7 +309,7 @@ class PlayerWrapper:
     def power_up_tick(self):
         """
         Ticks down the ticks of active power up.
-        If the counter is expired, the Powerup will get removed.
+        If the counter is expired, the power up will get removed.
         """
         expired_power_ups = []
         for power_up in self._player.active_power_ups:

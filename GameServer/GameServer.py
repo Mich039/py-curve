@@ -302,7 +302,6 @@ class GameServer:
         """
         This tick function holds the logic for the in game mechanics
         """
-        #  move_start_time = time.time() * 1000
         self._spawn_power_ups()
         for player_id, player in self._gameState.player_list.items():
             if player.player.player_status == PlayerStatus.ALIVE:
@@ -313,7 +312,6 @@ class GameServer:
                     self._calculate_score()
                     if not self._players_alive():
                         self._init_between_games()
-        #  print("Move took {t} ms".format(t=(time.time()*1000)-move_start_time))
         self._broadcast_state()
 
     def _spawn_power_ups(self):
