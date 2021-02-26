@@ -230,7 +230,7 @@ class GameClient:
         for element in render_elements:
             self._window.blit(element[0], element[1])
 
-    def _render_menu(self):
+    def _render_menu(self, timeout=False):
         # storing elements to render in a list
         # containing tuples will be rendered every iteration
         render_elements = []
@@ -274,6 +274,12 @@ class GameClient:
         text_box = text.get_rect()
         text_box.bottomleft = (WIDTH // 2 - 200, HEIGHT // 2 + 50)
         render_elements.append((text, text_box))
+
+        if timeout:
+            text = font.render("Time-Out while joining!", True, ClientConstants.RED)
+            text_box = text.get_rect()
+            text_box.bottomleft = (WIDTH // 2 - 200, HEIGHT - 150)
+            render_elements.append((text, text_box))
 
         # new lobby button
         button_text = font.render("New Lobby", True, ClientConstants.FIELD_INACTIVE_COLOR)
@@ -380,11 +386,23 @@ class GameClient:
         """
         clock = pg.time.Clock()
         pg.init()
+
+        # count and limit force_wait iterations
+        time_out_counter = 0
+        time_out = False
         while True:
             # force_wait is set if a crucial update was just sent to the server
             # and rendering without its respond would make no sense/lead to problems
-            if not self._game_state and not self._force_wait:
-                self._render_menu()
+
+            if self._force_wait and not self._game_state:
+                time_out_counter += 1
+                if time_out_counter > 100:
+                    print("timeout while joining...")
+                    time_out_counter = 0
+                    time_out = True
+                    self._force_wait = False
+            elif not self._game_state and not self._force_wait:
+                self._render_menu(time_out)
             elif not self._force_wait:
                 if self._game_state.state == LobbyState.LOBBY:
                     self._render_lobby_state()

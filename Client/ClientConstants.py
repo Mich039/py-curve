@@ -7,7 +7,8 @@ PORT = 4321
 
 # FPS limit
 FRAMES_PER_SECOND = 60
-
+# timeout limit in ticks
+TIME_OUT_LIMIT = 100
 # should be uneven to avoid asymmetrical rendering
 LINE_THICKNESS = 5
 
