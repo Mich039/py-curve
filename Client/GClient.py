@@ -148,7 +148,7 @@ class GameClient:
                 self._client.say(player_input)
             self._last_input = player_input
 
-    def _render_lobby_state(self):
+    def _render_lobby(self):
         """
         Instructs PyGame to draw the lobby_screen.
         Should be called periodically during the main loop if lobby_state (part of game_state) is set to lobby.
@@ -405,7 +405,7 @@ class GameClient:
                 self._render_menu(time_out)
             elif not self._force_wait:
                 if self._game_state.state == LobbyState.LOBBY:
-                    self._render_lobby_state()
+                    self._render_lobby()
                 elif self._game_state.state == LobbyState.IN_GAME:
                     self._render_game()
                 elif self._game_state.state == LobbyState.BETWEEN_GAMES:

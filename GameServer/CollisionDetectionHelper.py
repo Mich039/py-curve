@@ -3,13 +3,26 @@ from GameServer import ServerConstants
 
 
 def is_relevant(p1: Point, p2: Point):
+    """
+    Checks if two given Points are within a given range.
+    Range is defined in ServerConstants.
+    (Absolute Difference in X- or Y-Axis)
+    """
     return p2.x + ServerConstants.CHECK_DISTANCE < p1.x or p2.x - ServerConstants.CHECK_DISTANCE > p1.x \
            and p2.y + ServerConstants.CHECK_DISTANCE < p1.y or p2.y - ServerConstants.CHECK_DISTANCE > p1.y
 
 
-def on_segment(p, q, r):
-    if ((q.x <= max(p.x, r.x)) and (q.x >= min(p.x, r.x)) and
-            (q.y <= max(p.y, r.y)) and (q.y >= min(p.y, r.y))):
+def on_segment(f, b, t):
+    """
+    Takes 3 collinear points and checks whether point m is between
+    f and t
+    :param f: f(rom) point
+    :param b: point that might be b(etween)
+    :param t: t(o) point
+    :return:
+    """
+    if ((b.x <= max(f.x, t.x)) and (b.x >= min(f.x, t.x)) and
+            (b.y <= max(f.y, t.y)) and (b.y >= min(f.y, t.y))):
         return True
     return False
 
