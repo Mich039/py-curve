@@ -14,7 +14,12 @@ pg.display.set_caption("CurveFever Client")
 
 
 def points_to_tuples(points):
-    # Points arent compatible with PyGame and need to be converted to tuples
+    """
+    Converts Objects of class "Point" (with x, y-Property) to tuples.
+    Points arent compatible with PyGame and therefore need to be converted.
+    :param points: List of Points
+    :return: List of Tuples
+    """
     res = []
     for p in points:
         res.append((p.x, p.y))
@@ -30,10 +35,23 @@ class GameClient:
         self._last_input = None
 
     def _init_client(self, ip=ClientConstants.IP, port=ClientConstants.PORT, name="User"):
+        """
+        Initialize the Socket-Client with an IP/Port and a representing name.
+        The created client will automatically try to start/establish a connection.
+        :param ip: Server-IP
+        :param port: Server-Port
+        :param name: Client-Name (optional)
+        """
         self._client = Client(ip, port, name)
         self._client.receive_message_event = self._handle_game_state
 
     def _join(self, id: int, username: str):
+        """
+        Try to create or join an existing lobby.
+        :param id: If id < 0 a new Lobby will be created, otherwise the given id will be used to join.
+        :param username: (User-)name representing the player.
+        :return: True if username was given, does NOT necessarily indicate a successful join
+        """
         if not username or len(username) < 1:
             return False
 
