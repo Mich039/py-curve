@@ -109,9 +109,6 @@ class PlayerWrapper:
                 last_point = None
                 for point in segment.list:
                     count = count + 1
-                    # Only check for collision with point if the line in near the head
-                    # if not is_relevant(self.player.head, point):
-                    # continue
                     # Skip every other point. The line that will get checked is longer and the performance is better
                     if count % 2 == 0:
                         continue

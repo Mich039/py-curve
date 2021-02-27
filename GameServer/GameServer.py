@@ -235,19 +235,14 @@ class GameServer:
         """
         This method handles the ticks in the game state lobby
         """
-        change: bool = False
         handle_result = self._handle_ready_inputs()
-        change = handle_result[0]
+        self._handle_color_inputs()
 
-        change = change or self._handle_color_inputs()
-
-        change = change or self._remove_players()
+        self._remove_players()
 
         if handle_result[1]:
             self._init_new_game()
             self._gameState.state = LobbyState.IN_GAME
-
-        #elif change:
         self._broadcast_state()
 
     def _players_alive(self) -> bool:
@@ -382,5 +377,4 @@ class GameServer:
             self._init_new_round()
             self._gameState.state = LobbyState.IN_GAME
 
-        #elif handle_result[0] or self._remove_players():
         self._broadcast_state()
